@@ -38,12 +38,16 @@ export const searchSpotifyAlbums = async (query) => {
       },
     });
 
-    const albums = response.data.albums.items;
+    // Check if albums and items exist
+    const albums = response.data?.albums?.items;
+    if (!albums || albums.length === 0) {
+      console.error('No albums found in Spotify response');
+      return []; // Return an empty array if no albums were found
+    }
 
-    // Fetch genres for each album's primary artist
     const albumsWithGenres = await Promise.all(
       albums.map(async (album) => {
-        const artistId = album.artists[0].id; // Use the primary artist's ID
+        const artistId = album.artists[0].id;
         try {
           const artistResponse = await axios.get(`https://api.spotify.com/v1/artists/${artistId}`, {
             headers: {
@@ -51,10 +55,10 @@ export const searchSpotifyAlbums = async (query) => {
             },
           });
           const genres = artistResponse.data.genres;
-          return { ...album, genres }; // Attach genres to the album data
+          return { ...album, genres };
         } catch (err) {
           console.error('Error fetching artist genres:', err);
-          return { ...album, genres: [] }; // Fallback if genre fetch fails
+          return { ...album, genres: [] };
         }
       })
     );
@@ -65,3 +69,4 @@ export const searchSpotifyAlbums = async (query) => {
     throw error;
   }
 };
+

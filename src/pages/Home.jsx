@@ -1,32 +1,51 @@
-import React from 'react';
-import { Box, Typography, Button } from '@mui/material';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { Typography, Grid, Box } from '@mui/material';
+import RecordRow from '../components/RecordRow';
 
-function Home() {
+const HomePage = ({ isLoggedIn, userData }) => {
+  const [records, setRecords] = useState([]);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const fetchRecords = async () => {
+      try {
+        const response = await axios.get(`/api/records?page=${page}`);
+        setRecords(response.data.records || []);  // Fallback to empty array
+      } catch (error) {
+        console.error('Error fetching records:', error);
+        setRecords([]);  // Set to empty array on error
+      }
+    };
+    fetchRecords();
+  }, [page]);
+
   return (
-    <Box sx={{ padding: 4, textAlign: 'center' }}>
-      <Typography variant="h3" gutterBottom>
-        Vinyl Exchange Platform
+    <Box sx={{ mt: 2 }}>
+      <Typography variant="h4" gutterBottom>
+        Needle Drop Vinyl Exchange
       </Typography>
-      <Typography variant="body1" sx={{ marginY: 3 }}>
-        Welcome to the Vinyl Exchange Platform, a place for vinyl record enthusiasts to buy, sell, and trade records
-        from all around the world. Explore our extensive database powered by Spotify to discover albums by your
-        favorite artists, complete with album details, track listings, and an option to listen on Spotify.
-      </Typography>
-      <Typography variant="body1" sx={{ marginY: 3 }}>
-        Start by exploring our Record Search page to find albums and add them to your collection or wishlist. Connect
-        with other users, negotiate trades, and build your ultimate vinyl collection.
-      </Typography>
-      <Button
-        variant="contained"
-        component={Link}
-        to="/record-search"
-        sx={{ marginTop: 4 }}
-      >
-        Go to Record Search
-      </Button>
+      <Grid container spacing={2}>
+        {records.map((record) => (
+          <Grid item xs={12} sm={6} md={4} lg={3} key={record.id}>
+            <Box sx={{ p: 2, border: '1px solid #ddd', borderRadius: 2 }}>
+              <Typography variant="h6">{record.title}</Typography>
+              <Typography variant="body2">by {record.artist}</Typography>
+            </Box>
+          </Grid>
+        ))}
+      </Grid>
+
+      {isLoggedIn && userData && (
+        <>
+          <RecordRow title="Recently Viewed Items" items={userData.recentlyViewed || []} />
+          <RecordRow title="Relevant Genre Suggestions" items={userData.favoriteGenres || []} />
+          <RecordRow title="Relevant Artist Suggestions" items={userData.favoriteArtists || []} />
+          <RecordRow title="Relevant Year Suggestions" items={userData.savedItems || []} />
+        </>
+      )}
     </Box>
   );
-}
+};
 
-export default Home;
+export default HomePage;
