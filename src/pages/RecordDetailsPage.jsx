@@ -1,6 +1,6 @@
 // RecordDetailsPage.jsx
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { getSpotifyAccessToken } from '../utils/spotifyApi';
 import { TextField, Select, MenuItem, Button, Typography, Box } from '@mui/material';
 import axios from 'axios';
@@ -9,30 +9,30 @@ const RecordDetailsPage = () => {
   const { albumId } = useParams();
   const [record, setRecord] = useState(null);
   const [formData, setFormData] = useState({
+    title: '',
+    artist: '',
+    genres: '',
+    releaseDate: '',
     condition: 'Used',
     description: '',
     shipping: 'No Shipping',
   });
   const [selectedFile, setSelectedFile] = useState(null);
-  const [imageUrls, setImageUrls] = useState(record?.images || []);
+  const [imageUrls, setImageUrls] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchRecord = async () => {
       try {
         const token = await getSpotifyAccessToken();
-        
         const albumResponse = await axios.get(`https://api.spotify.com/v1/albums/${albumId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
+
         const album = albumResponse.data;
         const artistId = album.artists[0]?.id;
         const artistResponse = await axios.get(`https://api.spotify.com/v1/artists/${artistId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         const genres = artistResponse.data.genres;
@@ -44,8 +44,16 @@ const RecordDetailsPage = () => {
           genres,
           coverUrl: album.images[0]?.url,
           releaseDate: album.release_date,
-          images: [] // initialize images array
         });
+
+        // Set initial values for editable form fields
+        setFormData((prevData) => ({
+          ...prevData,
+          title: album.name,
+          artist: album.artists.map((artist) => artist.name).join(', '),
+          genres: genres.join(', '),
+          releaseDate: album.release_date,
+        }));
       } catch (error) {
         console.error("Error fetching Spotify record details:", error);
       }
@@ -62,67 +70,62 @@ const RecordDetailsPage = () => {
 
   const handleUpload = async () => {
     if (!selectedFile) return;
-  
+
     try {
-      // Ensure albumId is included if required
       const response = await axios.get('http://localhost:5001/api/s3/generate-upload-url', {
         params: {
           fileName: selectedFile.name,
           fileType: selectedFile.type,
-          albumId: record.albumId // Add albumId if required by the backend
-        },
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          albumId: record.albumId
+        }
       });
-  
+
       const { uploadUrl, imageUrl } = response.data;
-      console.log("Generated upload URL:", uploadUrl);
-  
-      // Ensure uploadUrl is defined before using it
-      if (uploadUrl) {
-        await axios.put(uploadUrl, selectedFile, {
-          headers: { 'Content-Type': selectedFile.type }
-        });
-      } else {
-        console.error("Upload URL is undefined.");
-      }
-  
+      await axios.put(uploadUrl, selectedFile, {
+        headers: { 'Content-Type': selectedFile.type }
+      });
+
+      setImageUrls((prev) => [...prev, imageUrl]);
+      console.log("Updated image URLs:", imageUrls); // Log updated image URLs
     } catch (error) {
       console.error("Error uploading file:", error);
     }
-  };  
-  
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('userId');
   
-      if (!token || !userId) {
-        alert("You need to be logged in to list a record.");
-        return;
-      }
+      const dataToSubmit = {
+        ...record,
+        ...formData,
+        userId,
+        images: imageUrls,
+        description: formData.description || '',  // Default to empty string if not provided
+        shipping: formData.shipping || 'No Shipping' // Default to 'No Shipping'
+      };
   
-      await axios.post(
+      console.log("Submitting with images:", imageUrls);
+      console.log("Form data:", dataToSubmit);
+  
+      const response = await axios.post(
         'http://localhost:5001/api/records/create',
-        {
-          ...record,
-          ...formData,
-          userId,
-        },
+        dataToSubmit,
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
+  
+      const newRecordId = response.data._id; // Capture the ID from the server response
       alert('Record listed successfully!');
+      navigate(`/listing/${newRecordId}`); // Navigate to the new ListingPage
     } catch (error) {
-      if (error.response?.status === 401) {
-        alert("Unauthorized. Please log in again.");
-      } else {
-        console.error('Error listing record:', error);
-        alert("Failed to list the record. Please try again.");
-      }
+      console.error('Error creating record listing:', error);
+      alert("Failed to list the record. Please try again.");
     }
   };
   
@@ -135,32 +138,32 @@ const RecordDetailsPage = () => {
       <TextField
         label="Title"
         name="title"
-        value={record.title}
-        onChange={(e) => setRecord({ ...record, title: e.target.value })}
+        value={formData.title}
+        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
         fullWidth
         sx={{ my: 2 }}
       />
       <TextField
         label="Artist"
         name="artist"
-        value={record.artist}
-        onChange={(e) => setRecord({ ...record, artist: e.target.value })}
+        value={formData.artist}
+        onChange={(e) => setFormData({ ...formData, artist: e.target.value })}
         fullWidth
         sx={{ my: 2 }}
       />
       <TextField
         label="Release Date"
         name="releaseDate"
-        value={record.releaseDate}
-        onChange={(e) => setRecord({ ...record, releaseDate: e.target.value })}
+        value={formData.releaseDate}
+        onChange={(e) => setFormData({ ...formData, releaseDate: e.target.value })}
         fullWidth
         sx={{ my: 2 }}
       />
       <TextField
         label="Genres"
         name="genres"
-        value={record.genres.join(', ')}
-        onChange={(e) => setRecord({ ...record, genres: e.target.value.split(', ') })}
+        value={formData.genres}
+        onChange={(e) => setFormData({ ...formData, genres: e.target.value })}
         fullWidth
         sx={{ my: 2 }}
       />
@@ -173,7 +176,6 @@ const RecordDetailsPage = () => {
         allow="encrypted-media"
       ></iframe>
 
-      {/* File upload section */}
       <Box sx={{ mt: 4 }}>
         <input type="file" onChange={handleFileChange} />
         <Button onClick={handleUpload} variant="contained" sx={{ mt: 2 }}>
@@ -181,7 +183,6 @@ const RecordDetailsPage = () => {
         </Button>
       </Box>
 
-      {/* Display uploaded images */}
       <Box sx={{ mt: 4 }}>
         <Typography variant="h6">Uploaded Images</Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center', mt: 2 }}>

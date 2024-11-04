@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
+import { ThemeProvider, createTheme, CssBaseline, Box, Typography } from '@mui/material';
 import HomePage from './pages/Home';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
@@ -7,17 +8,32 @@ import SignUpPage from './pages/SignUpPage';
 import ListRecordPage from './pages/ListRecordPage';
 import RecordDetailsPage from './pages/RecordDetailsPage';
 import NavBar from './components/NavBar';
+import ListingPage from './pages/ListingPage';
 import { RecordContext } from './RecordContext';
+
+const theme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#121212', // Dark neutral color for the header
+    },
+    secondary: {
+      main: '#ffffff', // White for high-contrast text
+    },
+  },
+  typography: {
+    fontFamily: 'Roboto, Arial, sans-serif',
+  },
+});
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
   const navigate = useNavigate();
   const { selectedRecordId } = useContext(RecordContext);
 
-  // useEffect to update isLoggedIn state based on token presence in localStorage
   useEffect(() => {
     const token = localStorage.getItem('token');
-    setIsLoggedIn(!!token);  // Update based on token presence
+    setIsLoggedIn(!!token);
   }, []);
 
   const handleLogin = () => {
@@ -40,7 +56,15 @@ function App() {
   };
 
   return (
-    <>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.main' }}>
+        <Link to="/" style={{ textDecoration: 'none' }}>
+          <Typography variant="h4" color="secondary.main">
+            Needle Drop Vinyl Exchange
+          </Typography>
+        </Link>
+      </Box>
       <NavBar onNavigate={onNavigate} isLoggedIn={isLoggedIn} />
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -49,8 +73,9 @@ function App() {
         <Route path="/profile" element={isLoggedIn ? <ProfilePage /> : <Navigate to="/login" />} />
         <Route path="/list-record" element={isLoggedIn ? <ListRecordPage /> : <Navigate to="/login" />} />
         <Route path="/edit-record/:albumId" element={<RecordDetailsPage />} />
+        <Route path="/listing/:id" element={<ListingPage />} />
       </Routes>
-    </>
+    </ThemeProvider>
   );
 }
 

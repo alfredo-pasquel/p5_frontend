@@ -13,9 +13,11 @@ const SignUpPage = ({ onLogin }) => {
     password: '',
     country: '',
     favoriteGenres: [],
-    favoriteArtists: '',
+    favoriteArtists: [],
     about: ''
   });
+  const [customGenre, setCustomGenre] = useState(''); // State for custom genre
+  const [showCustomGenre, setShowCustomGenre] = useState(false); // Control display of custom genre input
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
@@ -26,21 +28,41 @@ const SignUpPage = ({ onLogin }) => {
 
   const handleGenresChange = (event) => {
     const { value } = event.target;
-    setFormData({ ...formData, favoriteGenres: typeof value === 'string' ? value.split(',') : value });
-  };
+    const selectedGenres = typeof value === 'string' ? value.split(',') : value;
+
+    setFormData({ ...formData, favoriteGenres: selectedGenres });
+
+    if (selectedGenres.includes('Other')) {
+        setShowCustomGenre(true);
+      } else {
+        setShowCustomGenre(false);
+        setCustomGenre(''); // Clear custom genre if "Other" is deselected
+      }
+    };
 
 // Inside handleSubmit function of SignUpPage.jsx
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Process favoriteArtists
       const processedFormData = {
         ...formData,
-        favoriteArtists: formData.favoriteArtists.split(',').map(artist => artist.trim()) // Convert string to array
+        favoriteArtists: formData.favoriteArtists.split(',').map(artist => artist.trim())
       };
-  
+
+      // Replace "Other" with customGenre if provided
+      if (customGenre.trim() !== '') {
+        processedFormData.favoriteGenres = processedFormData.favoriteGenres.map(genre =>
+          genre === 'Other' ? customGenre.trim() : genre
+        );
+      } else {
+        // Remove "Other" if no customGenre is provided
+        processedFormData.favoriteGenres = processedFormData.favoriteGenres.filter(genre => genre !== 'Other');
+      }
+
       const response = await axios.post('http://localhost:5001/api/users/register', processedFormData);
       const { token } = response.data;
-  
+
       if (token) {
         localStorage.setItem('token', token);
         onLogin();  // Call the onLogin function to update state
@@ -123,6 +145,17 @@ const handleSubmit = async (e) => {
             ))}
           </Select>
         </FormControl>
+
+        {showCustomGenre && (
+          <TextField
+            label="Enter Custom Genre"
+            name="customGenre"
+            value={customGenre}
+            onChange={(e) => setCustomGenre(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+        )}
 
         <TextField
           label="Favorite Artists (separate by commas)"

@@ -11,8 +11,7 @@ const genres = [
     "Breakbeat", "Neoclassical", "Baroque", "Minimal", "Avant-Garde", "Chiptune", 
     "Soundtrack", "World Music", "Celtic", "Dancehall", "Roots", "Zydeco", "Calypso", 
     "Big Band", "Ragtime", "Neo-Soul", "Soul Jazz", "Jazz Fusion", "Latin Jazz", 
-    "Bachata", "Merengue", "Bolero", "Fado", "Gamelan"
+    "Bachata", "Merengue", "Bolero", "Fado", "Gamelan", "Other"
   ];
   
   export default genres;
-  
