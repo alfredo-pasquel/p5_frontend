@@ -1,7 +1,6 @@
-// src/pages/SpotifyCallback.jsx
-
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 function SpotifyCallback() {
   const navigate = useNavigate();
@@ -11,13 +10,21 @@ function SpotifyCallback() {
     const code = searchParams.get('code');
 
     if (code) {
-      // Handle the code (you would exchange it for an access token in a secure backend)
-      console.log('Authorization code:', code);
+      axios
+        .post('http://localhost:5001/api/spotify/callback', { code })
+        .then((response) => {
+          // Save the token and user data in localStorage
+          localStorage.setItem('token', response.data.token);
+          localStorage.setItem('userId', response.data.user._id);
 
-      // Redirect to another page after handling (e.g., home or profile)
-      navigate('/profile');
+          // Redirect to profile or home page
+          navigate('/profile');
+        })
+        .catch((error) => {
+          console.error('Error during Spotify authentication:', error);
+          navigate('/error');
+        });
     } else {
-      // Handle error or missing code
       console.error('Authorization code missing');
       navigate('/error');
     }

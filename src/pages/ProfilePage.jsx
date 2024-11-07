@@ -1,17 +1,58 @@
+// src/pages/ProfilePage.jsx
+
 import React, { useEffect, useState } from 'react';
-import { Typography, List, ListItem, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
-import { jwtDecode } from 'jwt-decode';
+import {
+  Typography,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  TextField,
+  IconButton,
+  Autocomplete,
+  Grid,
+  Card,
+  CardMedia,
+  CardContent,
+  CardActions,
+  Box,
+  List,
+  ListItem,
+  Alert,
+  Paper,
+} from '@mui/material';
+import { Edit, Save, Delete } from '@mui/icons-material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import {jwtDecode} from 'jwt-decode';
+import { searchSpotifyAlbums, getAlbumDetails } from '../utils/spotifyApi';
 
 const ProfilePage = () => {
   const [userData, setUserData] = useState(null);
   const [listedRecords, setListedRecords] = useState([]);
-  const [recommendedRecords, setRecommendedRecords] = useState([]);
+  const [savedRecords, setSavedRecords] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [updatedUserData, setUpdatedUserData] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [albumOptions, setAlbumOptions] = useState([]);
+  const [selectedAlbum, setSelectedAlbum] = useState(null);
+  const [lookingForAlbums, setLookingForAlbums] = useState([]);
+  const [recommendedRecords, setRecommendedRecords] = useState([]);
   const navigate = useNavigate();
+
+  // Helper function to process and flatten user data
+  const processUserData = (data) => ({
+    ...data,
+    favoriteArtists: data.favoriteArtists.flat(),
+    favoriteGenres: data.favoriteGenres.flat(),
+  });
+
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -24,18 +65,20 @@ const ProfilePage = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        console.log("User Data:", userResponse.data);
-        setUserData(userResponse.data);
+      // Use the helper function to process user data
+      const processedData = processUserData(userResponse.data);
 
+      setUserData(processedData);
+      setUpdatedUserData(processedData);
+
+        // Fetch listed records
         const recordDetails = await Promise.all(
           userResponse.data.recordsListedForTrade.map(async (record) => {
             const recordId = typeof record === 'object' ? record._id.toString() : record;
-            console.log("Fetching record with ID:", recordId);
             try {
               const recordResponse = await axios.get(`http://localhost:5001/api/records/${recordId}`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
-              console.log("Fetched Record Data:", recordResponse.data);
               return recordResponse.data;
             } catch (error) {
               console.warn(`Record with ID ${recordId} not found.`);
@@ -46,14 +89,47 @@ const ProfilePage = () => {
 
         setListedRecords(recordDetails.filter((record) => record !== null));
 
+        // Fetch saved items
+        const savedItemDetails = await Promise.all(
+          userResponse.data.savedItems.map(async (recordId) => {
+            const recordResponse = await axios.get(`http://localhost:5001/api/records/${recordId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            return recordResponse.data;
+          })
+        );
+
+        setSavedRecords(savedItemDetails);
+
+        // Fetch notifications
+        const notificationsResponse = await axios.get(`http://localhost:5001/api/users/${userId}/notifications`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setNotifications(notificationsResponse.data.notifications);
+
+        // Fetch "Looking For" album details
+        if (userResponse.data.lookingFor && userResponse.data.lookingFor.length > 0) {
+          try {
+            const albums = await Promise.all(
+              userResponse.data.lookingFor.map(async (albumId) => {
+                const albumData = await getAlbumDetails(albumId);
+                return albumData;
+              })
+            );
+            setLookingForAlbums(albums);
+          } catch (error) {
+            console.error('Error fetching "Looking For" albums:', error);
+          }
+        }
+
+        // Fetch recommendations
         const recommendationsResponse = await axios.get(`http://localhost:5001/api/users/recommendations`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log("Recommended Records (Frontend):", recommendationsResponse.data);
         setRecommendedRecords(recommendationsResponse.data);
 
       } catch (err) {
-        console.error("Error fetching user data:", err);
+        console.error('Error fetching user data:', err);
         setError('Failed to load profile data');
         localStorage.removeItem('token');
         navigate('/login');
@@ -64,7 +140,7 @@ const ProfilePage = () => {
   }, [navigate]);
 
   const handleDeleteClick = (event, recordId) => {
-    event.stopPropagation(); // Prevent the parent click event from firing
+    event.stopPropagation();
     setRecordToDelete(recordId);
     setDeleteDialogOpen(true);
   };
@@ -78,8 +154,8 @@ const ProfilePage = () => {
       setListedRecords(listedRecords.filter((record) => record._id !== recordToDelete));
       setDeleteDialogOpen(false);
     } catch (error) {
-      console.error("Error deleting record:", error);
-      alert("Failed to delete the record.");
+      console.error('Error deleting record:', error);
+      alert('Failed to delete the record.');
     }
   };
 
@@ -88,66 +164,478 @@ const ProfilePage = () => {
     setRecordToDelete(null);
   };
 
+  const toggleEditMode = () => {
+    setIsEditing(!isEditing);
+    setUpdatedUserData(userData);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setUpdatedUserData({ ...updatedUserData, [name]: value });
+  };
+
+  const saveProfileChanges = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const { userId } = jwtDecode(token);
+      const response = await axios.put(
+        `http://localhost:5001/api/users/${userId}`,
+        updatedUserData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      // Process the updated user data
+      const processedData = processUserData(response.data);
+
+      setUserData(processedData);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+    }
+  };
+
+  const handleSearchChange = async (event, value) => {
+    setSearchQuery(value);
+    if (value.length > 2) {
+      try {
+        const results = await searchSpotifyAlbums(value);
+        setAlbumOptions(results);
+      } catch (error) {
+        console.error('Error searching albums:', error);
+      }
+    }
+  };
+
+  const handleAddToLookingFor = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `http://localhost:5001/api/users/add-looking-for`,
+        { albumId: selectedAlbum.id },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      // Update local state
+      setLookingForAlbums((prevAlbums) => [...prevAlbums, selectedAlbum]);
+      setUserData((prevData) => ({
+        ...prevData,
+        lookingFor: [...prevData.lookingFor, selectedAlbum.id],
+      }));
+      setSelectedAlbum(null);
+      setSearchQuery('');
+      setAlbumOptions([]);
+    } catch (error) {
+      console.error('Error adding to Looking For:', error);
+    }
+  };
+
+  const handleRemoveFromLookingFor = async (albumId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `http://localhost:5001/api/users/remove-looking-for`,
+        { albumId },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      // Update local state
+      setLookingForAlbums((prevAlbums) => prevAlbums.filter((album) => album.id !== albumId));
+      setUserData((prevData) => ({
+        ...prevData,
+        lookingFor: prevData.lookingFor.filter((id) => id !== albumId),
+      }));
+    } catch (error) {
+      console.error('Error removing from Looking For:', error);
+      alert('Failed to remove album from Looking For list.');
+    }
+  };
+
   if (error) return <Typography>{error}</Typography>;
   if (!userData) return <Typography>Loading...</Typography>;
 
   return (
-    <Box sx={{ mt: 2 }}>
-      <Typography variant="h4" gutterBottom>{userData.username}'s Profile</Typography>
-      <Typography variant="body1"><strong>Country:</strong> {userData.country}</Typography>
-      <Typography variant="body1" sx={{ mt: 1 }}><strong>About:</strong> {userData.about}</Typography>
-      
-      <Typography variant="h5" sx={{ mt: 3 }}>Favorite Artists</Typography>
-      <Typography>{userData.favoriteArtists.flat().join(', ')}</Typography>
+    <Box sx={{ mt: 4, mb: 4, px: { xs: 2, md: 4 } }}>
+      <Grid container spacing={4}>
+        {/* Profile Header */}
+        <Grid item xs={12}>
+          <Paper elevation={3} sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography variant="h4">{userData.username}'s Profile</Typography>
+              <IconButton onClick={isEditing ? saveProfileChanges : toggleEditMode} color="primary">
+                {isEditing ? <Save /> : <Edit />}
+              </IconButton>
+            </Box>
 
-      <Typography variant="h5" sx={{ mt: 3 }}>Favorite Genres</Typography>
-      <Typography>{userData.favoriteGenres.flat().join(', ')}</Typography>
-
-      <Typography variant="h5" sx={{ mt: 3 }}>Looking For</Typography>
-      {userData.lookingFor.length > 0 ? (
-        <List>{userData.lookingFor.map((record, index) => <ListItem key={index}>{record}</ListItem>)}</List>
-      ) : (
-        <Typography>No items in 'Looking For' list.</Typography>
-      )}
-
-      <Typography variant="h5" sx={{ mt: 3 }}>Records Listed for Trade</Typography>
-      <List>
-        {listedRecords.map((record, index) => (
-          <ListItem
-            key={index}
-            sx={{ flexDirection: 'column', alignItems: 'flex-start', mb: 2, cursor: 'pointer' }}
-            onClick={() => navigate(`/listing/${record._id}`)}
-          >
-            <Typography variant="h6">{record.title}</Typography>
-            <Typography><strong>Artist:</strong> {record.artist.join(', ')}</Typography>
-            <Typography><strong>Genres:</strong> {record.genres.join(', ')}</Typography>
-            <Box component="img" src={record.coverUrl} alt={`${record.title} cover`} sx={{ width: 150, borderRadius: 2, mt: 1 }} />
-            <Box sx={{ mt: 1 }}>
-              {record.albumId ? (
-                <iframe
-                  src={`https://open.spotify.com/embed/album/${record.albumId}`}
-                  width="300"
-                  height="80"
-                  style={{ border: "none" }}
-                  allow="encrypted-media"
-                  title="Spotify Player"
-                ></iframe>
+            {/* User Info */}
+            <Box sx={{ mt: 2 }}>
+              {isEditing ? (
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="Country"
+                      name="country"
+                      value={updatedUserData.country}
+                      onChange={handleInputChange}
+                      fullWidth
+                      variant="outlined"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="Trade Count"
+                      name="tradeCount"
+                      value={updatedUserData.tradeCount}
+                      onChange={handleInputChange}
+                      fullWidth
+                      variant="outlined"
+                      type="number"
+                      InputProps={{ inputProps: { min: 0 } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      label="About"
+                      name="about"
+                      value={updatedUserData.about}
+                      onChange={handleInputChange}
+                      multiline
+                      rows={4}
+                      fullWidth
+                      variant="outlined"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      label="Favorite Artists"
+                      name="favoriteArtists"
+                      value={updatedUserData.favoriteArtists.join(', ')}
+                      onChange={(e) =>
+                        setUpdatedUserData({
+                          ...updatedUserData,
+                          favoriteArtists: e.target.value.split(',').map((artist) => artist.trim()),
+                        })
+                      }
+                      fullWidth
+                      variant="outlined"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      label="Favorite Genres"
+                      name="favoriteGenres"
+                      value={updatedUserData.favoriteGenres.join(', ')}
+                      onChange={(e) =>
+                        setUpdatedUserData({
+                          ...updatedUserData,
+                          favoriteGenres: e.target.value.split(',').map((genre) => genre.trim()),
+                        })
+                      }
+                      fullWidth
+                      variant="outlined"
+                    />
+                  </Grid>
+                </Grid>
               ) : (
-                <Typography color="error">Spotify link not available</Typography>
+                <Box>
+                  <Typography variant="body1" sx={{ mt: 1 }}>
+                    <strong>Country:</strong> {userData.country}
+                  </Typography>
+                  <Typography variant="body1" sx={{ mt: 1 }}>
+                    <strong>About:</strong> {userData.about}
+                  </Typography>
+                  <Typography variant="body1" sx={{ mt: 1 }}>
+                    <strong>Trade Count:</strong> {userData.tradeCount}
+                  </Typography>
+                  <Typography variant="h6" sx={{ mt: 3 }}>
+                    Favorite Artists
+                  </Typography>
+                  <Typography variant="body2">{userData.favoriteArtists.join(', ')}</Typography>
+                  <Typography variant="h6" sx={{ mt: 3 }}>
+                    Favorite Genres
+                  </Typography>
+                  <Typography variant="body2">{userData.favoriteGenres.join(', ')}</Typography>
+
+                  {/* Notifications Section */}
+                  <Typography variant="h6" sx={{ mt: 3 }}>
+                    Notifications
+                  </Typography>
+                  {notifications.length > 0 ? (
+                    <List>
+                      {notifications.map((notification, index) => (
+                        <ListItem
+                          key={index}
+                          onClick={() => navigate(`/listing/${notification.recordId}`)}
+                          sx={{ cursor: 'pointer' }}
+                        >
+                          <Typography>{notification.message}</Typography>
+                        </ListItem>
+                      ))}
+                    </List>
+                  ) : (
+                    <Typography>No notifications.</Typography>
+                  )}
+                </Box>
               )}
             </Box>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={(event) => handleDeleteClick(event, record._id)} // Use event to stop propagation
-              sx={{ mt: 2 }}
-            >
-              Delete Listing
-            </Button>
-          </ListItem>
-        ))}
-      </List>
+          </Paper>
+        </Grid>
 
+        {/* Looking For Section */}
+        <Grid item xs={12}>
+          <Paper elevation={3} sx={{ p: 3 }}>
+            <Typography variant="h5" gutterBottom>
+              Looking For
+            </Typography>
+            <Autocomplete
+              options={albumOptions}
+              getOptionLabel={(option) => `${option.name} by ${option.artists[0].name}`}
+              onInputChange={handleSearchChange}
+              onChange={(event, newValue) => setSelectedAlbum(newValue)}
+              renderInput={(params) => <TextField {...params} label="Add to Looking For" variant="outlined" />}
+              sx={{ mt: 2, mb: 2 }}
+            />
+            <Button
+              variant="contained"
+              onClick={handleAddToLookingFor}
+              disabled={!selectedAlbum}
+              fullWidth
+              sx={{ mb: 3 }}
+            >
+              Add to Looking For
+            </Button>
+
+            {lookingForAlbums.length > 0 ? (
+              <Grid container spacing={2}>
+                {lookingForAlbums.map((album, index) => (
+                  <Grid item xs={12} sm={6} md={3} key={index}>
+                    <Card>
+                      <Box
+                        sx={{
+                          position: 'relative',
+                          width: '100%',
+                          paddingTop: '100%', // 1:1 Aspect Ratio
+                        }}
+                      >
+                        <CardMedia
+                          component="img"
+                          image={album.images[0]?.url}
+                          alt={`${album.name} cover`}
+                          sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                        />
+                      </Box>
+                      <CardContent sx={{ textAlign: 'center' }}>
+                        <Typography variant="h6">{album.name}</Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {album.artists[0].name}
+                        </Typography>
+                      </CardContent>
+                      <CardActions sx={{ justifyContent: 'center' }}>
+                        <IconButton
+                          edge="end"
+                          aria-label="delete"
+                          onClick={() => handleRemoveFromLookingFor(album.id)}
+                        >
+                          <Delete />
+                        </IconButton>
+                      </CardActions>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              <Typography>No items in 'Looking For' list.</Typography>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Saved Items Section */}
+        <Grid item xs={12}>
+          <Paper elevation={3} sx={{ p: 3 }}>
+            <Typography variant="h5" gutterBottom>
+              Saved Items
+            </Typography>
+            {savedRecords.length > 0 ? (
+              <Grid container spacing={2}>
+                {savedRecords.map((record, index) => (
+                  <Grid item xs={12} sm={6} md={3} key={index}>
+                    <Card
+                      onClick={() => navigate(`/listing/${record._id}`)}
+                      sx={{
+                        cursor: 'pointer',
+                        '&:hover': {
+                          boxShadow: 6,
+                        },
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          position: 'relative',
+                          width: '100%',
+                          paddingTop: '100%', // 1:1 Aspect Ratio
+                        }}
+                      >
+                        <CardMedia
+                          component="img"
+                          image={record.coverUrl}
+                          alt={`${record.title} cover`}
+                          sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                        />
+                      </Box>
+                      <CardContent sx={{ textAlign: 'center' }}>
+                        <Typography variant="h6">{record.title}</Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {record.artist.join(', ')}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              <Typography>No saved items.</Typography>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Records Listed for Trade Section */}
+        <Grid item xs={12}>
+          <Paper elevation={3} sx={{ p: 3 }}>
+            <Typography variant="h5" gutterBottom>
+              Records Listed for Trade
+            </Typography>
+            {listedRecords.length > 0 ? (
+              <Grid container spacing={2}>
+                {listedRecords.map((record, index) => (
+                  <Grid item xs={12} sm={6} md={3} key={index}>
+                    <Card
+                      sx={{ position: 'relative' }}
+                      onClick={() => navigate(`/listing/${record._id}`)}
+                    >
+                      <Box
+                        sx={{
+                          position: 'relative',
+                          width: '100%',
+                          paddingTop: '100%', // 1:1 Aspect Ratio
+                        }}
+                      >
+                        <CardMedia
+                          component="img"
+                          image={record.coverUrl}
+                          alt={`${record.title} cover`}
+                          sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                        />
+                      </Box>
+                      <CardContent sx={{ textAlign: 'center' }}>
+                        <Typography variant="h6">{record.title}</Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {record.artist.join(', ')}
+                        </Typography>
+                      </CardContent>
+                      <CardActions sx={{ justifyContent: 'center' }}>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDeleteClick(event, record._id);
+                          }}
+                        >
+                          Delete Listing
+                        </Button>
+                      </CardActions>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              <Typography>No records listed for trade.</Typography>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Recommended Records Section */}
+        <Grid item xs={12}>
+          <Paper elevation={3} sx={{ p: 3 }}>
+            <Typography variant="h5" gutterBottom>
+              Recommended Records
+            </Typography>
+            {recommendedRecords.length > 0 ? (
+              <Grid container spacing={2}>
+                {recommendedRecords.map((record, index) => (
+                  <Grid item xs={12} sm={6} md={3} key={index}>
+                    <Card
+                      onClick={() => navigate(`/listing/${record._id}`)}
+                      sx={{
+                        cursor: 'pointer',
+                        '&:hover': {
+                          boxShadow: 6,
+                        },
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          position: 'relative',
+                          width: '100%',
+                          paddingTop: '100%', // 1:1 Aspect Ratio
+                        }}
+                      >
+                        <CardMedia
+                          component="img"
+                          image={record.coverUrl}
+                          alt={`${record.title} cover`}
+                          sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                        />
+                      </Box>
+                      <CardContent sx={{ textAlign: 'center' }}>
+                        <Typography variant="h6">{record.title}</Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {record.artist.join(', ')}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              <Typography>No recommendations available.</Typography>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialogOpen}
         onClose={handleDeleteCancel}
@@ -167,38 +655,6 @@ const ProfilePage = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      <Typography variant="h5" sx={{ mt: 3 }}>Recommended Records</Typography>
-      <List>
-        {recommendedRecords.map((record, index) => (
-          <ListItem
-            key={index}
-            sx={{ flexDirection: 'column', alignItems: 'flex-start', mb: 2, cursor: 'pointer' }}
-            onClick={() => navigate(`/listing/${record._id}`)}
-          >
-            <Typography variant="h6">{record.title}</Typography>
-            <Typography><strong>Artist:</strong> {record.artist.join(', ')}</Typography>
-            <Typography><strong>Genres:</strong> {record.genres.join(', ')}</Typography>
-            <Box component="img" src={record.coverUrl} alt={`${record.title} cover`} sx={{ width: 150, borderRadius: 2, mt: 1 }} />
-            <Box sx={{ mt: 1 }}>
-              {record.albumId ? (
-                <iframe
-                  src={`https://open.spotify.com/embed/album/${record.albumId}`}
-                  width="300"
-                  height="80"
-                  style={{ border: "none" }}
-                  allow="encrypted-media"
-                  title="Spotify Player"
-                ></iframe>
-              ) : (
-                <Typography color="error">Spotify link not available</Typography>
-              )}
-            </Box>
-          </ListItem>
-        ))}
-      </List>
-
-      <Typography variant="body1" sx={{ mt: 3 }}><strong>Trade Count:</strong> {userData.tradeCount}</Typography>
     </Box>
   );
 };

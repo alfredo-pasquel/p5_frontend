@@ -1,7 +1,6 @@
 // RecordDetailsPage.jsx
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getSpotifyAccessToken } from '../utils/spotifyApi';
 import { TextField, Select, MenuItem, Button, Typography, Box } from '@mui/material';
 import axios from 'axios';
 
@@ -24,17 +23,12 @@ const RecordDetailsPage = () => {
   useEffect(() => {
     const fetchRecord = async () => {
       try {
-        const token = await getSpotifyAccessToken();
-        const albumResponse = await axios.get(`https://api.spotify.com/v1/albums/${albumId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
+        // Fetch album details from backend
+        const albumResponse = await axios.get(`http://localhost:5001/api/spotify/album/${albumId}`);
         const album = albumResponse.data;
-        const artistId = album.artists[0]?.id;
-        const artistResponse = await axios.get(`https://api.spotify.com/v1/artists/${artistId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
 
+        const artistId = album.artists[0]?.id;
+        const artistResponse = await axios.get(`http://localhost:5001/api/spotify/artist/${artistId}`);
         const genres = artistResponse.data.genres;
 
         setRecord({
@@ -55,7 +49,7 @@ const RecordDetailsPage = () => {
           releaseDate: album.release_date,
         }));
       } catch (error) {
-        console.error("Error fetching Spotify record details:", error);
+        console.error('Error fetching album details:', error);
       }
     };
 

@@ -36,7 +36,8 @@ const HomePage = () => {
                   alt={`${record.title} cover`}
                   sx={{
                     height: 200,
-                    objectFit: 'cover',
+                    objectFit: 'contain',
+                    objectPosition: 'center',
                     aspectRatio: '1 / 1', // Keep square aspect ratio for album covers
                   }}
                 />
@@ -45,7 +46,7 @@ const HomePage = () => {
                   <Typography variant="body2" color="textSecondary">{record.artist}</Typography>
                   <Typography variant="body2" color="textSecondary">Genre: {record.genres.join(', ')}</Typography>
                   <Typography variant="body2" color="textSecondary">Year: {new Date(record.releaseDate).getFullYear()}</Typography>
-                  <Box sx={{ mt: 1 }}>
+                  {/* <Box sx={{ mt: 1 }}>
                     <iframe
                       src={`https://open.spotify.com/embed/album/${record.albumId}`}
                       width="100%"
@@ -54,7 +55,7 @@ const HomePage = () => {
                       allow="encrypted-media"
                       title="Spotify Player"
                     ></iframe>
-                  </Box>
+                  </Box> */}
                 </CardContent>
               </Card>
             </Link>

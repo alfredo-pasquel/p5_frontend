@@ -10,6 +10,9 @@ import RecordDetailsPage from './pages/RecordDetailsPage';
 import NavBar from './components/NavBar';
 import ListingPage from './pages/ListingPage';
 import { RecordContext } from './RecordContext';
+import SpotifyCallback from './pages/SpotifyCallback';
+import MessagesPage from './pages/MessagesPage';
+import MessageDetailPage from './pages/MessageDetailPage';
 
 const theme = createTheme({
   palette: {
@@ -61,7 +64,7 @@ function App() {
       <Box sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.main' }}>
         <Link to="/" style={{ textDecoration: 'none' }}>
           <Typography variant="h4" color="secondary.main">
-            Needle Drop Vinyl Exchange
+            Needle Drop
           </Typography>
         </Link>
       </Box>
@@ -74,6 +77,9 @@ function App() {
         <Route path="/list-record" element={isLoggedIn ? <ListRecordPage /> : <Navigate to="/login" />} />
         <Route path="/edit-record/:albumId" element={<RecordDetailsPage />} />
         <Route path="/listing/:id" element={<ListingPage />} />
+        <Route path="/callback" element={<SpotifyCallback />} />
+        <Route path="/messages" element={<MessagesPage />} />
+        <Route path="/messages/:conversationId" element={<MessageDetailPage />} />
       </Routes>
     </ThemeProvider>
   );
