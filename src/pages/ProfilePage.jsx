@@ -11,7 +11,6 @@ import {
   DialogTitle,
   TextField,
   IconButton,
-  Autocomplete,
   Grid,
   Card,
   CardMedia,
@@ -20,8 +19,9 @@ import {
   Box,
   List,
   ListItem,
-  Alert,
+  Autocomplete,
   Paper,
+  Rating,
 } from '@mui/material';
 import { Edit, Save, Delete } from '@mui/icons-material';
 import axios from 'axios';
@@ -53,7 +53,6 @@ const ProfilePage = () => {
     favoriteGenres: data.favoriteGenres.flat(),
   });
 
-
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -65,20 +64,23 @@ const ProfilePage = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-      // Use the helper function to process user data
-      const processedData = processUserData(userResponse.data);
+        // Use the helper function to process user data
+        const processedData = processUserData(userResponse.data);
 
-      setUserData(processedData);
-      setUpdatedUserData(processedData);
+        setUserData(processedData);
+        setUpdatedUserData(processedData);
 
         // Fetch listed records
         const recordDetails = await Promise.all(
           userResponse.data.recordsListedForTrade.map(async (record) => {
             const recordId = typeof record === 'object' ? record._id.toString() : record;
             try {
-              const recordResponse = await axios.get(`http://localhost:5001/api/records/${recordId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
+              const recordResponse = await axios.get(
+                `http://localhost:5001/api/records/${recordId}`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
               return recordResponse.data;
             } catch (error) {
               console.warn(`Record with ID ${recordId} not found.`);
@@ -87,14 +89,22 @@ const ProfilePage = () => {
           })
         );
 
-        setListedRecords(recordDetails.filter((record) => record !== null));
+        // Exclude traded records
+        const availableRecords = recordDetails.filter(
+          (record) => record && !record.isTraded
+        );
+
+        setListedRecords(availableRecords);
 
         // Fetch saved items
         const savedItemDetails = await Promise.all(
           userResponse.data.savedItems.map(async (recordId) => {
-            const recordResponse = await axios.get(`http://localhost:5001/api/records/${recordId}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
+            const recordResponse = await axios.get(
+              `http://localhost:5001/api/records/${recordId}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
             return recordResponse.data;
           })
         );
@@ -102,9 +112,12 @@ const ProfilePage = () => {
         setSavedRecords(savedItemDetails);
 
         // Fetch notifications
-        const notificationsResponse = await axios.get(`http://localhost:5001/api/users/${userId}/notifications`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const notificationsResponse = await axios.get(
+          `http://localhost:5001/api/users/${userId}/notifications`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         setNotifications(notificationsResponse.data.notifications);
 
         // Fetch "Looking For" album details
@@ -123,11 +136,13 @@ const ProfilePage = () => {
         }
 
         // Fetch recommendations
-        const recommendationsResponse = await axios.get(`http://localhost:5001/api/users/recommendations`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const recommendationsResponse = await axios.get(
+          `http://localhost:5001/api/users/recommendations`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         setRecommendedRecords(recommendationsResponse.data);
-
       } catch (err) {
         console.error('Error fetching user data:', err);
         setError('Failed to load profile data');
@@ -243,7 +258,9 @@ const ProfilePage = () => {
         }
       );
       // Update local state
-      setLookingForAlbums((prevAlbums) => prevAlbums.filter((album) => album.id !== albumId));
+      setLookingForAlbums((prevAlbums) =>
+        prevAlbums.filter((album) => album.id !== albumId)
+      );
       setUserData((prevData) => ({
         ...prevData,
         lookingFor: prevData.lookingFor.filter((id) => id !== albumId),
@@ -254,6 +271,12 @@ const ProfilePage = () => {
     }
   };
 
+  const calculateAverageRating = (feedbackArray) => {
+    if (feedbackArray.length === 0) return 0;
+    const total = feedbackArray.reduce((sum, f) => sum + f.rating, 0);
+    return total / feedbackArray.length;
+  };
+
   if (error) return <Typography>{error}</Typography>;
   if (!userData) return <Typography>Loading...</Typography>;
 
@@ -262,7 +285,7 @@ const ProfilePage = () => {
       <Grid container spacing={4}>
         {/* Profile Header */}
         <Grid item xs={12}>
-          <Paper elevation={3} sx={{ p: 3 }}>
+          <Paper elevation={3} sx={{ p: 3, backgroundColor: 'rgba(18, 18, 18, 0.5)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Typography variant="h4">{userData.username}'s Profile</Typography>
               <IconButton onClick={isEditing ? saveProfileChanges : toggleEditMode} color="primary">
@@ -288,14 +311,15 @@ const ProfilePage = () => {
                     <TextField
                       label="Trade Count"
                       name="tradeCount"
-                      value={updatedUserData.tradeCount}
-                      onChange={handleInputChange}
+                      value={userData.tradeCount}
                       fullWidth
                       variant="outlined"
                       type="number"
-                      InputProps={{ inputProps: { min: 0 } }}
+                      InputProps={{ readOnly: true }}
                     />
                   </Grid>
+                  {/* Remove Rating from editing mode */}
+                  {/* ... other editable fields ... */}
                   <Grid item xs={12}>
                     <TextField
                       label="About"
@@ -316,7 +340,9 @@ const ProfilePage = () => {
                       onChange={(e) =>
                         setUpdatedUserData({
                           ...updatedUserData,
-                          favoriteArtists: e.target.value.split(',').map((artist) => artist.trim()),
+                          favoriteArtists: e.target.value
+                            .split(',')
+                            .map((artist) => artist.trim()),
                         })
                       }
                       fullWidth
@@ -331,7 +357,9 @@ const ProfilePage = () => {
                       onChange={(e) =>
                         setUpdatedUserData({
                           ...updatedUserData,
-                          favoriteGenres: e.target.value.split(',').map((genre) => genre.trim()),
+                          favoriteGenres: e.target.value
+                            .split(',')
+                            .map((genre) => genre.trim()),
                         })
                       }
                       fullWidth
@@ -350,6 +378,21 @@ const ProfilePage = () => {
                   <Typography variant="body1" sx={{ mt: 1 }}>
                     <strong>Trade Count:</strong> {userData.tradeCount}
                   </Typography>
+                  {/* Display average rating */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                    <Typography variant="body1">
+                      <strong>Rating:</strong>
+                    </Typography>
+                    <Rating
+                      value={calculateAverageRating(userData.feedback)}
+                      readOnly
+                      precision={0.5}
+                      sx={{ ml: 1 }}
+                    />
+                    <Typography variant="body1" sx={{ ml: 1 }}>
+                      ({userData.feedback.length})
+                    </Typography>
+                  </Box>
                   <Typography variant="h6" sx={{ mt: 3 }}>
                     Favorite Artists
                   </Typography>
@@ -386,7 +429,7 @@ const ProfilePage = () => {
 
         {/* Looking For Section */}
         <Grid item xs={12}>
-          <Paper elevation={3} sx={{ p: 3 }}>
+          <Paper elevation={3} sx={{ p: 3, backgroundColor: 'rgba(18, 18, 18, 0.5)' }}>
             <Typography variant="h5" gutterBottom>
               Looking For
             </Typography>
@@ -395,7 +438,9 @@ const ProfilePage = () => {
               getOptionLabel={(option) => `${option.name} by ${option.artists[0].name}`}
               onInputChange={handleSearchChange}
               onChange={(event, newValue) => setSelectedAlbum(newValue)}
-              renderInput={(params) => <TextField {...params} label="Add to Looking For" variant="outlined" />}
+              renderInput={(params) => (
+                <TextField {...params} label="Add to Looking For" variant="outlined" />
+              )}
               sx={{ mt: 2, mb: 2 }}
             />
             <Button
@@ -461,7 +506,7 @@ const ProfilePage = () => {
 
         {/* Saved Items Section */}
         <Grid item xs={12}>
-          <Paper elevation={3} sx={{ p: 3 }}>
+          <Paper elevation={3} sx={{ p: 3, backgroundColor: 'rgba(18, 18, 18, 0.5)' }}>
             <Typography variant="h5" gutterBottom>
               Saved Items
             </Typography>
@@ -502,7 +547,7 @@ const ProfilePage = () => {
                       <CardContent sx={{ textAlign: 'center' }}>
                         <Typography variant="h6">{record.title}</Typography>
                         <Typography variant="body2" color="textSecondary">
-                          {record.artist.join(', ')}
+                          {Array.isArray(record.artist) ? record.artist.join(', ') : record.artist}
                         </Typography>
                       </CardContent>
                     </Card>
@@ -517,7 +562,7 @@ const ProfilePage = () => {
 
         {/* Records Listed for Trade Section */}
         <Grid item xs={12}>
-          <Paper elevation={3} sx={{ p: 3 }}>
+          <Paper elevation={3} sx={{ p: 3, backgroundColor: 'rgba(18, 18, 18, 0.5)' }}>
             <Typography variant="h5" gutterBottom>
               Records Listed for Trade
             </Typography>
@@ -553,7 +598,7 @@ const ProfilePage = () => {
                       <CardContent sx={{ textAlign: 'center' }}>
                         <Typography variant="h6">{record.title}</Typography>
                         <Typography variant="body2" color="textSecondary">
-                          {record.artist.join(', ')}
+                          {Array.isArray(record.artist) ? record.artist.join(', ') : record.artist}
                         </Typography>
                       </CardContent>
                       <CardActions sx={{ justifyContent: 'center' }}>
@@ -580,7 +625,7 @@ const ProfilePage = () => {
 
         {/* Recommended Records Section */}
         <Grid item xs={12}>
-          <Paper elevation={3} sx={{ p: 3 }}>
+          <Paper elevation={3} sx={{ p: 3, backgroundColor: 'rgba(18, 18, 18, 0.5)' }}>
             <Typography variant="h5" gutterBottom>
               Recommended Records
             </Typography>
@@ -621,7 +666,7 @@ const ProfilePage = () => {
                       <CardContent sx={{ textAlign: 'center' }}>
                         <Typography variant="h6">{record.title}</Typography>
                         <Typography variant="body2" color="textSecondary">
-                          {record.artist.join(', ')}
+                          {Array.isArray(record.artist) ? record.artist.join(', ') : record.artist}
                         </Typography>
                       </CardContent>
                     </Card>
@@ -636,10 +681,7 @@ const ProfilePage = () => {
       </Grid>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={handleDeleteCancel}
-      >
+      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <DialogContentText>

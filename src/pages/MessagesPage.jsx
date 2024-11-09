@@ -51,7 +51,7 @@ const MessagesPage = () => {
   };
 
   return (
-    <Box sx={{ mt: 2 }}>
+    <Box sx={{ mt: 2, backgroundColor: 'rgba(18, 18, 18, 0.5)' }}>
       <Typography variant="h4" gutterBottom>Your Conversations</Typography>
       <List>
         {conversations.map((conv) => {

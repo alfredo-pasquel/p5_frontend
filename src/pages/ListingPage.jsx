@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box, Typography, Card, CardMedia, CardContent, Modal, IconButton, Button
+  Rating, Box, Typography, Card, CardMedia, CardContent, Modal, IconButton, Button
 } from '@mui/material';
 import { Favorite, FavoriteBorder } from '@mui/icons-material';
 import axios from 'axios';
@@ -22,7 +22,16 @@ const ListingPage = () => {
     const fetchRecord = async () => {
       try {
         const response = await axios.get(`http://localhost:5001/api/records/${id}`);
-        setRecord(response.data);
+        const sellerId = response.data.userId._id;
+
+        // Fetch seller's public data including feedback
+        const sellerResponse = await axios.get(`http://localhost:5001/api/users/${sellerId}/public`);
+        const sellerData = sellerResponse.data;
+
+        setRecord({
+          ...response.data,
+          sellerData,
+        });
       } catch (error) {
         console.error('Error fetching record data:', error);
         setError('Failed to load listing data');
@@ -96,6 +105,11 @@ const ListingPage = () => {
       const sellerId = record.userId._id;
       const recordId = record._id;
 
+      if (buyerId === sellerId) {
+        alert("You cannot message yourself.");
+        return;
+      }
+
       // Start or get existing conversation
       const response = await axios.post(
         'http://localhost:5001/api/messages/start',
@@ -113,11 +127,17 @@ const ListingPage = () => {
     }
   };
 
+  const calculateAverageRating = (feedbackArray) => {
+    if (feedbackArray.length === 0) return 0;
+    const total = feedbackArray.reduce((sum, f) => sum + f.rating, 0);
+    return total / feedbackArray.length;
+  };
+
   if (error) return <Typography>{error}</Typography>;
   if (!record) return <Typography>Loading...</Typography>;
 
   return (
-    <Box sx={{ maxWidth: 800, margin: 'auto', mt: 4, p: 2 }}>
+    <Box sx={{ maxWidth: 800, margin: 'auto', mt: 4, p: 2, backgroundColor: 'rgba(18, 18, 18, 0.5)' }}>
       <Card>
         {/* Record Details */}
         <CardMedia
@@ -133,7 +153,7 @@ const ListingPage = () => {
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography variant="h4" gutterBottom>{record.title}</Typography>
-            <IconButton onClick={handleSave}>
+            <IconButton onClick={handleSave} disabled={record.isTraded}>
               {isSaved ? <Favorite color="error" /> : <FavoriteBorder />}
             </IconButton>
           </Box>
@@ -144,6 +164,13 @@ const ListingPage = () => {
           <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
             Released: {record.releaseDate}
           </Typography>
+
+          {/* Display 'Traded' status */}
+          {record.isTraded && (
+            <Typography variant="h6" color="error" sx={{ mt: 2 }}>
+              This record has been traded.
+            </Typography>
+          )}
 
           <Box sx={{ mt: 2 }}>
             <iframe
@@ -168,30 +195,49 @@ const ListingPage = () => {
           </Typography>
         </CardContent>
 
-        {/* In the Seller Information section */}
-        {record.userId && (
-        <CardContent>
+        {/* Seller Information */}
+        {record.sellerData && (
+          <CardContent>
             <Typography variant="h6" sx={{ mt: 3 }}>Seller Information</Typography>
             <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-            Username: {record.userId.username}
+              Username: {record.sellerData.username}
             </Typography>
             <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-            Trade Count: {record.userId.tradeCount}
+              Trade Count: {record.sellerData.tradeCount}
             </Typography>
             <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-            Feedback Count: {record.userId.feedback.length}
+              Feedback Count: {record.sellerData.feedback.length}
             </Typography>
-            <Button
-            variant="contained"
-            color="primary"
-            sx={{ mt: 2 }}
-            onClick={handleMessageSeller}
-            >
-            Message Seller
-            </Button>
-        </CardContent>
-        )}
+            {/* Display average rating */}
+            <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+              <Typography variant="body2" color="textSecondary">
+                Rating:
+              </Typography>
+              <Rating
+                value={calculateAverageRating(record.sellerData.feedback)}
+                readOnly
+                precision={0.5}
+                sx={{ ml: 1 }}
+              />
+              <Typography variant="body2" color="textSecondary" sx={{ ml: 1 }}>
+                ({record.sellerData.feedback.length})
+              </Typography>
+            </Box>
 
+            {/* Disable actions if the record is traded */}
+            {!record.isTraded && (
+              <Button
+                variant="contained"
+                color="primary"
+                sx={{ mt: 2 }}
+                onClick={handleMessageSeller}
+              >
+                Message Seller
+              </Button>
+            )}
+          </CardContent>
+        )}
+        
         {/* User Photos */}
         <CardContent>
           <Typography variant="h6" gutterBottom>User Photos</Typography>

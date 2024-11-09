@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline, Box, Typography } from '@mui/material';
+import { ThemeProvider, createTheme, CssBaseline, Box, Typography, GlobalStyles } from '@mui/material';
 import HomePage from './pages/Home';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
@@ -26,6 +26,7 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: 'Roboto, Arial, sans-serif',
+    // fontFamily: '"Cinzel Decorative", serif',
   },
 });
 
@@ -61,11 +62,71 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.main' }}>
-        <Link to="/" style={{ textDecoration: 'none' }}>
-          <Typography variant="h4" color="secondary.main">
-            Needle Drop
-          </Typography>
+      <GlobalStyles
+        styles={{
+          body: {
+            backgroundImage: 'url(/src/assets/NeedleDropBackground2.jpg)', // Replace with your actual image path
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            minHeight: '100vh', // Ensures the background covers the whole viewport
+            margin: 0,          // Removes default margin
+            padding: 0,
+          },
+          'input:-webkit-autofill': {
+            backgroundColor: 'rgba(18, 18, 18, 0.5) !important', // Match your background
+            WebkitBoxShadow: '0 0 0 1000px rgba(18, 18, 18, 0.5) inset !important',
+            WebkitTextFillColor: '#ffffff !important', // White text
+            borderRadius: '4px', // Match your input border-radius
+          },
+        }}
+      />
+      <Box
+        sx={{
+          p: 6, // Adjust padding for taller header
+          textAlign: 'center',
+          bgcolor: 'primary.main',
+          backgroundImage: 'url(/src/assets/NeedleDropBackground.jpg)', 
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          position: 'relative',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            bgcolor: 'rgba(0, 0, 0, 0.4)', // Dark overlay for better contrast
+            zIndex: 1,
+          },
+          zIndex: 0,
+        }}
+      >
+        <Link to="/" style={{ textDecoration: 'none', position: 'relative', zIndex: 2 }}>
+          <Box
+            sx={{
+              display: 'inline-block',
+              px: 3,
+              py: 1,
+              bgcolor: 'rgba(255, 255, 255, 0.7)', // Semi-transparent background for the title
+              borderRadius: 2,
+              boxShadow: 3,
+            }}
+          >
+            <Typography
+              variant="h3" // Make title larger
+              sx={{
+                fontFamily: '"Cinzel Decorative", serif', // Replace with an artsy Google Font
+                color: 'primary.main', // Text color to contrast with the semi-transparent background
+                fontWeight: 'bold',
+                textShadow: '2px 2px 4px rgba(0, 0, 0, 0.7)', // Adds subtle text shadow for more pop
+              }}
+            >
+              Needle Drop
+            </Typography>
+          </Box>
         </Link>
       </Box>
       <NavBar onNavigate={onNavigate} isLoggedIn={isLoggedIn} />

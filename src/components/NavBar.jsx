@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  AppBar, Toolbar, IconButton, Button, Menu, MenuItem, Badge,
+  AppBar, Toolbar, IconButton, Button, Menu, MenuItem, Badge, Box,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import axios from 'axios';
@@ -47,23 +47,27 @@ const NavBar = ({ onNavigate, isLoggedIn }) => {
   }, [isLoggedIn]);
 
   return (
-    <AppBar position="static" sx={{ mb: 2 }}>
+    <AppBar position="static" sx={{ mb: 1 }}>
       <Toolbar>
-        {isLoggedIn && (
-          <>
-            <Button color="inherit" onClick={() => onNavigate('list-record')}>List Record</Button>
-            <Badge color="error" badgeContent={unreadCount} sx={{ mx: 2 }}>
-              <Button color="inherit" onClick={() => onNavigate('messages')}>
-                Messages
-              </Button>
-            </Badge>
-            <Button color="inherit" onClick={() => onNavigate('profile')}>Profile</Button>
-          </>
-        )}
+        <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', gap: 3 }}>
+          {isLoggedIn && (
+            <>
+              <Button color="inherit" onClick={() => onNavigate('list-record')}>List Record</Button>
+              <Badge color="error" badgeContent={unreadCount}>
+                <Button color="inherit" onClick={() => onNavigate('messages')}>
+                  Messages
+                </Button>
+              </Badge>
+              <Button color="inherit" onClick={() => onNavigate('profile')}>Profile</Button>
+            </>
+          )}
+        </Box>
 
-        <IconButton color="inherit" onClick={handleMenuClick} sx={{ ml: 'auto' }}>
-          <MenuIcon />
-        </IconButton>
+        <Box sx={{ position: 'absolute', right: 16 }}>
+          <IconButton color="inherit" onClick={handleMenuClick}>
+            <MenuIcon />
+          </IconButton>
+        </Box>
 
         <Menu
           anchorEl={anchorEl}

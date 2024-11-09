@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  Box, Typography, List, ListItem, ListItemText, TextField, Button, Link
+  Rating, Dialog, DialogTitle, DialogContent, DialogActions, Box, Typography, List, ListItem, ListItemText, TextField, Button, Link
 } from '@mui/material';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -15,6 +15,9 @@ const MessageDetailPage = () => {
   const [userId, setUserId] = useState(null);
   const [tradeStatus, setTradeStatus] = useState({});
   const [unreadCountUpdated, setUnreadCountUpdated] = useState(false);
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
   const intervalIdRef = useRef(null);
   const navigate = useNavigate();
 
@@ -63,6 +66,19 @@ const MessageDetailPage = () => {
       }
     };
   }, [conversationId]); // Re-run if conversationId changes
+
+  // Add another useEffect to check for feedback
+  useEffect(() => {
+    if (
+      conversation &&
+      conversation.tradeStatus &&
+      conversation.tradeStatus.isCompleted &&
+      (!conversation.tradeStatus.feedbackProvided ||
+        !conversation.tradeStatus.feedbackProvided.includes(userId))
+    ) {
+      setFeedbackDialogOpen(true);
+    }
+  }, [conversation, userId]);
 
   // Function to handle sending a message
   const handleSendMessage = async () => {
@@ -128,6 +144,25 @@ const MessageDetailPage = () => {
           alert('Failed to confirm trade completion.');
         }
       };
+
+      const handleSubmitFeedback = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          await axios.post(
+            `http://localhost:5001/api/trades/feedback`,
+            { conversationId, rating, comment },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          setFeedbackDialogOpen(false);
+          alert('Thank you for your feedback!');
+        } catch (error) {
+          console.error('Error submitting feedback:', error);
+          alert('Failed to submit feedback.');
+        }
+      };
+      
       
   if (!conversation) return <Typography>Loading...</Typography>;
 
@@ -137,7 +172,7 @@ const MessageDetailPage = () => {
   );
 
   return (
-    <Box sx={{ mt: 2 }}>
+    <Box sx={{ mt: 2, backgroundColor: 'rgba(18, 18, 18, 0.5)' }}>
       <Typography variant="h4" gutterBottom>
         Conversation with {otherParticipant.username}
       </Typography>
@@ -243,7 +278,37 @@ const MessageDetailPage = () => {
         </Button>
       )}
     </Box>
-    </Box>
+
+    {/* Feedback Dialog */}
+    <Dialog open={feedbackDialogOpen} onClose={() => setFeedbackDialogOpen(false)}>
+      <DialogTitle>Provide Feedback</DialogTitle>
+      <DialogContent>
+        <Typography>Please rate your experience with {otherParticipant.username}:</Typography>
+        <Rating
+          value={rating}
+          onChange={(event, newValue) => {
+            setRating(newValue);
+          }}
+        />
+        <TextField
+          label="Comment (optional)"
+          multiline
+          rows={4}
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          fullWidth
+          variant="outlined"
+          sx={{ mt: 2 }}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setFeedbackDialogOpen(false)}>Cancel</Button>
+        <Button onClick={handleSubmitFeedback} disabled={rating === 0}>
+          Submit
+        </Button>
+      </DialogActions>
+    </Dialog>
+  </Box>
   );
 };
 

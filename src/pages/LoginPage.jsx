@@ -21,9 +21,12 @@ import { styled } from '@mui/system';
 // Styled components
 const StyledCard = styled(Card)(({ theme }) => ({
   padding: theme.spacing(4),
-  maxWidth: 400,
+  maxWidth: 600,
   margin: 'auto',
   marginTop: theme.spacing(8),
+  backgroundColor: 'rgba(18, 18, 18, 0.5)',
+  backdropFilter: 'blur(10px)', // Adds subtle background blur
+  borderRadius: theme.spacing(2), // Slightly round corners for aesthetics
 }));
 
 const StyledBox = styled(Box)(({ theme }) => ({
@@ -31,6 +34,21 @@ const StyledBox = styled(Box)(({ theme }) => ({
   flexDirection: 'column',
   alignItems: 'center',
 }));
+
+const StyledTextField = styled(TextField)({
+  '&:-webkit-autofill': {
+    backgroundColor: 'rgba(18, 18, 18, 0.5) !important', // Match your background
+    WebkitBoxShadow: '0 0 0px 1000px rgba(18, 18, 18, 0.5) inset !important',
+    WebkitTextFillColor: '#ffffff !important', // White text color
+  },
+  '&:hover:-webkit-autofill': {
+    WebkitBoxShadow: '0 0 0px 1000px rgba(18, 18, 18, 0.5) inset !important',
+  },
+  '&:-webkit-autofill:focus': {
+    WebkitBoxShadow: '0 0 0px 1000px rgba(18, 18, 18, 0.5) inset !important',
+  },
+});
+
 
 const LoginPage = ({ onLogin }) => {
   const [identifier, setIdentifier] = useState(''); // Supports email or username
@@ -95,7 +113,7 @@ const LoginPage = ({ onLogin }) => {
                 {error}
               </Alert>
             )}
-            <TextField
+            <StyledTextField
               margin="normal"
               required
               fullWidth
@@ -107,7 +125,7 @@ const LoginPage = ({ onLogin }) => {
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
             />
-            <TextField
+            <StyledTextField
               margin="normal"
               required
               fullWidth
@@ -133,20 +151,11 @@ const LoginPage = ({ onLogin }) => {
                 {/* Placeholder for "Forgot password" link */}
               </Grid>
               <Grid item>
-                <Button variant="text" onClick={() => navigate('/signup')}>
+                <Button variant="text" onClick={() => navigate('/signup')} sx={{color:'white'}}>
                   {"Don't have an account? Sign Up"}
                 </Button>
               </Grid>
             </Grid>
-            {/* <Button
-              fullWidth
-              variant="outlined"
-              color="secondary"
-              onClick={handleSpotifyLogin}
-              sx={{ mt: 2 }}
-            >
-              Sign in with Spotify
-            </Button> */}
           </Box>
         </CardContent>
       </StyledCard>

@@ -1,16 +1,15 @@
-// ListRecordPage.jsx
 import React, { useState, useContext } from 'react';
-import { TextField, Button, Select, MenuItem, Typography, Box, List, ListItem } from '@mui/material';
+import { TextField, Button, Typography, Box, List, ListItem } from '@mui/material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { RecordContext } from '../RecordContext';  // Import RecordContext for context management
+import { RecordContext } from '../RecordContext'; // Import RecordContext for context management
 import { searchSpotifyAlbums } from '../utils/spotifyApi';
 
 const ListRecordPage = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
-  const { setSelectedRecordId } = useContext(RecordContext);  // Use context to set record ID
+  const { setSelectedRecordId } = useContext(RecordContext); // Use context to set record ID
   const [error, setError] = useState(null);
 
   const handleSearch = async () => {
@@ -29,29 +28,61 @@ const ListRecordPage = () => {
   };
 
   const handleSelect = (record) => {
-    setSelectedRecordId(record.id);  // Set the record ID in context
-    navigate(`/edit-record/${record.id}`);  // Navigate with albumId in URL
+    setSelectedRecordId(record.id); // Set the record ID in context
+    navigate(`/edit-record/${record.id}`); // Navigate with albumId in URL
   };
 
   return (
     <Box sx={{ mt: 2 }}>
-      <Typography variant="h4" gutterBottom>List a Record for Sale</Typography>
-      <TextField
-        label="Search for a Record"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        fullWidth
-      />
-      <Button onClick={handleSearch} variant="contained" sx={{ mt: 2 }}>Search</Button>
-      
+      <Box 
+        sx={{ 
+          p: 3, 
+          bgcolor: 'rgba(18, 18, 18, 0.4)', 
+          borderRadius: 2, 
+          backdropFilter: 'blur(10px)', 
+          mb: 2, 
+          textAlign: 'center' 
+        }}
+      >
+        <Typography variant="h4" gutterBottom color="secondary">
+          List a Record for Sale
+        </Typography>
+      </Box>
+
+      <Box 
+        sx={{ 
+          p: 3, 
+          bgcolor: 'rgba(18, 18, 18, 0.4)', 
+          borderRadius: 2, 
+          backdropFilter: 'blur(10px)' 
+        }}
+      >
+        <TextField
+          label="Search for a Record"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          fullWidth
+          variant="outlined"
+          sx={{ mb: 2 }}
+        />
+        <Button onClick={handleSearch} variant="contained" fullWidth>
+          Search
+        </Button>
+      </Box>
+
       {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
 
-      <List>
+      <List sx={{ mt: 2 }}>
         {results.map((album) => (
           <ListItem 
             key={album.id} 
             onClick={() => handleSelect(album)} 
-            sx={{ cursor: 'pointer', my: 2, borderBottom: '1px solid #ddd' }}
+            sx={{ 
+              cursor: 'pointer', 
+              my: 2, 
+              borderBottom: '1px solid #ddd', 
+              '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.1)' }
+            }}
           >
             <Box>
               <img src={album.images[0]?.url} alt={`${album.name} cover`} width="150" style={{ borderRadius: '8px' }} />

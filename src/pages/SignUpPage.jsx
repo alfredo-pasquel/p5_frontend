@@ -31,6 +31,9 @@ const StyledCard = styled(Card)(({ theme }) => ({
   maxWidth: 600,
   margin: 'auto',
   marginTop: theme.spacing(8),
+  backgroundColor: 'rgba(18, 18, 18, 0.5)',
+  backdropFilter: 'blur(10px)', // Adds subtle background blur
+  borderRadius: theme.spacing(2), // Slightly round corners for aesthetics
 }));
 
 const StyledBox = styled(Box)(({ theme }) => ({
@@ -38,6 +41,20 @@ const StyledBox = styled(Box)(({ theme }) => ({
   flexDirection: 'column',
   alignItems: 'center',
 }));
+
+const StyledTextField = styled(TextField)({
+  '&:-webkit-autofill': {
+    backgroundColor: 'rgba(18, 18, 18, 0.5) !important', // Match your background
+    WebkitBoxShadow: '0 0 0px 1000px rgba(18, 18, 18, 0.5) inset !important',
+    WebkitTextFillColor: '#ffffff !important', // White text color
+  },
+  '&:hover:-webkit-autofill': {
+    WebkitBoxShadow: '0 0 0px 1000px rgba(18, 18, 18, 0.5) inset !important',
+  },
+  '&:-webkit-autofill:focus': {
+    WebkitBoxShadow: '0 0 0px 1000px rgba(18, 18, 18, 0.5) inset !important',
+  },
+});
 
 const SignUpPage = () => {
   const [formData, setFormData] = useState({
@@ -146,7 +163,7 @@ const SignUpPage = () => {
             )}
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <TextField
+                <StyledTextField
                   autoComplete="username"
                   name="username"
                   required
@@ -177,7 +194,7 @@ const SignUpPage = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12}>
-                <TextField
+                <StyledTextField
                   required
                   fullWidth
                   id="email"
@@ -189,7 +206,7 @@ const SignUpPage = () => {
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
+                <StyledTextField
                   required
                   fullWidth
                   name="password"
@@ -202,7 +219,7 @@ const SignUpPage = () => {
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
+                <StyledTextField
                   required
                   fullWidth
                   name="confirmPassword"
@@ -237,7 +254,7 @@ const SignUpPage = () => {
               </Grid>
               {showCustomGenre && (
                 <Grid item xs={12}>
-                  <TextField
+                  <StyledTextField
                     label="Enter Custom Genre"
                     name="customGenre"
                     value={customGenre}
@@ -248,7 +265,7 @@ const SignUpPage = () => {
                 </Grid>
               )}
               <Grid item xs={12}>
-                <TextField
+                <StyledTextField
                   label="Favorite Artists (separate by commas)"
                   name="favoriteArtists"
                   value={formData.favoriteArtists}
@@ -258,7 +275,7 @@ const SignUpPage = () => {
                 />
               </Grid>
               <Grid item xs={12}>
-                <TextField
+                <StyledTextField
                   label="About"
                   name="about"
                   value={formData.about}
@@ -281,20 +298,11 @@ const SignUpPage = () => {
             </Button>
             <Grid container justifyContent="flex-end">
               <Grid item>
-                <Button variant="text" onClick={() => navigate('/login')}>
+                <Button variant="text" onClick={() => navigate('/login')} sx={{color: 'white'}}>
                   Already have an account? Sign in
                 </Button>
               </Grid>
             </Grid>
-            <Button
-              fullWidth
-              variant="outlined"
-              color="secondary"
-              onClick={handleSpotifySignUp}
-              sx={{ mt: 2 }}
-            >
-              Sign up with Spotify
-            </Button>
           </Box>
         </CardContent>
       </StyledCard>
