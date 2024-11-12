@@ -20,7 +20,7 @@ const NavBar = ({ onNavigate, isLoggedIn }) => {
       if (isLoggedIn) {
         try {
           const token = localStorage.getItem('token');
-          const response = await axios.get('http://localhost:5001/api/messages/unread-count', {
+          const response = await axios.get('https://p5-backend-xidu.onrender.com/api/messages/unread-count', {
             headers: { Authorization: `Bearer ${token}` },
           });
           setUnreadCount(response.data.unreadCount);

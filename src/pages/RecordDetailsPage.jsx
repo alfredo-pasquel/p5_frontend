@@ -25,11 +25,11 @@ const RecordDetailsPage = () => {
     const fetchRecord = async () => {
       try {
         // Fetch album details from backend
-        const albumResponse = await axios.get(`http://localhost:5001/api/spotify/album/${albumId}`);
+        const albumResponse = await axios.get(`https://p5-backend-xidu.onrender.com/api/spotify/album/${albumId}`);
         const album = albumResponse.data;
 
         const artistId = album.artists[0]?.id;
-        const artistResponse = await axios.get(`http://localhost:5001/api/spotify/artist/${artistId}`);
+        const artistResponse = await axios.get(`https://p5-backend-xidu.onrender.com/api/spotify/artist/${artistId}`);
         const genres = artistResponse.data.genres;
 
         setRecord({
@@ -87,7 +87,7 @@ const RecordDetailsPage = () => {
     if (!selectedFile) return;
 
     try {
-      const response = await axios.get('http://localhost:5001/api/s3/generate-upload-url', {
+      const response = await axios.get('https://p5-backend-xidu.onrender.com/api/s3/generate-upload-url', {
         params: {
           fileName: selectedFile.name,
           fileType: selectedFile.type,
@@ -133,7 +133,7 @@ const RecordDetailsPage = () => {
       }
 
       const response = await axios.post(
-        'http://localhost:5001/api/records/create',
+        'https://p5-backend-xidu.onrender.com/api/records/create',
         dataToSubmit,
         {
           headers: {

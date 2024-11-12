@@ -29,11 +29,11 @@ const ListingPage = () => {
   useEffect(() => {
     const fetchRecord = async () => {
       try {
-        const response = await axios.get(`http://localhost:5001/api/records/${id}`);
+        const response = await axios.get(`https://p5-backend-xidu.onrender.com/api/records/${id}`);
         const sellerId = response.data.userId._id;
 
         // Fetch seller's public data including feedback
-        const sellerResponse = await axios.get(`http://localhost:5001/api/users/${sellerId}/public`);
+        const sellerResponse = await axios.get(`https://p5-backend-xidu.onrender.com/api/users/${sellerId}/public`);
         const sellerData = sellerResponse.data;
 
         setRecord({
@@ -52,7 +52,7 @@ const ListingPage = () => {
         if (!token) return;
 
         const { userId } = jwtDecode(token);
-        const response = await axios.get(`http://localhost:5001/api/users/${userId}`, {
+        const response = await axios.get(`https://p5-backend-xidu.onrender.com/api/users/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -78,7 +78,7 @@ const ListingPage = () => {
 
       const endpoint = isSaved ? 'unsave' : 'save';
       await axios.post(
-        `http://localhost:5001/api/users/${endpoint}`,
+        `https://p5-backend-xidu.onrender.com/api/users/${endpoint}`,
         { recordId: id },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -120,7 +120,7 @@ const ListingPage = () => {
 
       // Start or get existing conversation
       const response = await axios.post(
-        'http://localhost:5001/api/messages/start',
+        'https://p5-backend-xidu.onrender.com/api/messages/start',
         { recordId, sellerId },
         {
           headers: { Authorization: `Bearer ${token}` },

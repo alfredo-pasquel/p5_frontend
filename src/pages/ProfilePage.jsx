@@ -60,7 +60,7 @@ const ProfilePage = () => {
         if (!token) throw new Error('No token found in localStorage.');
 
         const { userId } = jwtDecode(token);
-        const userResponse = await axios.get(`http://localhost:5001/api/users/${userId}`, {
+        const userResponse = await axios.get(`https://p5-backend-xidu.onrender.com/api/users/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -76,7 +76,7 @@ const ProfilePage = () => {
             const recordId = typeof record === 'object' ? record._id.toString() : record;
             try {
               const recordResponse = await axios.get(
-                `http://localhost:5001/api/records/${recordId}`,
+                `https://p5-backend-xidu.onrender.com/api/records/${recordId}`,
                 {
                   headers: { Authorization: `Bearer ${token}` },
                 }
@@ -100,7 +100,7 @@ const ProfilePage = () => {
         const savedItemDetails = await Promise.all(
           userResponse.data.savedItems.map(async (recordId) => {
             const recordResponse = await axios.get(
-              `http://localhost:5001/api/records/${recordId}`,
+              `https://p5-backend-xidu.onrender.com/api/records/${recordId}`,
               {
                 headers: { Authorization: `Bearer ${token}` },
               }
@@ -113,7 +113,7 @@ const ProfilePage = () => {
 
         // Fetch notifications
         const notificationsResponse = await axios.get(
-          `http://localhost:5001/api/users/${userId}/notifications`,
+          `https://p5-backend-xidu.onrender.com/api/users/${userId}/notifications`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -137,7 +137,7 @@ const ProfilePage = () => {
 
         // Fetch recommendations
         const recommendationsResponse = await axios.get(
-          `http://localhost:5001/api/users/recommendations`,
+          `https://p5-backend-xidu.onrender.com/api/users/recommendations`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -163,7 +163,7 @@ const ProfilePage = () => {
   const handleDeleteConfirm = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5001/api/records/delete/${recordToDelete}`, {
+      await axios.delete(`https://p5-backend-xidu.onrender.com/api/records/delete/${recordToDelete}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setListedRecords(listedRecords.filter((record) => record._id !== recordToDelete));
@@ -194,7 +194,7 @@ const ProfilePage = () => {
       const token = localStorage.getItem('token');
       const { userId } = jwtDecode(token);
       const response = await axios.put(
-        `http://localhost:5001/api/users/${userId}`,
+        `https://p5-backend-xidu.onrender.com/api/users/${userId}`,
         updatedUserData,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -227,7 +227,7 @@ const ProfilePage = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `http://localhost:5001/api/users/add-looking-for`,
+        `https://p5-backend-xidu.onrender.com/api/users/add-looking-for`,
         { albumId: selectedAlbum.id },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -251,7 +251,7 @@ const ProfilePage = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `http://localhost:5001/api/users/remove-looking-for`,
+        `https://p5-backend-xidu.onrender.com/api/users/remove-looking-for`,
         { albumId },
         {
           headers: { Authorization: `Bearer ${token}` },

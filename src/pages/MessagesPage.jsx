@@ -18,7 +18,7 @@ const MessagesPage = () => {
         const decoded = jwtDecode(token);
         setUserId(decoded.userId);
 
-        const response = await axios.get('http://localhost:5001/api/messages/conversations', {
+        const response = await axios.get('https://p5-backend-xidu.onrender.com/api/messages/conversations', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setConversations(response.data);

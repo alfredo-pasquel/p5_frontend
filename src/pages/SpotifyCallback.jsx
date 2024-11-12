@@ -11,7 +11,7 @@ function SpotifyCallback() {
 
     if (code) {
       axios
-        .post('http://localhost:5001/api/spotify/callback', { code })
+        .post('https://p5-backend-xidu.onrender.com/api/spotify/callback', { code })
         .then((response) => {
           // Save the token and user data in localStorage
           localStorage.setItem('token', response.data.token);

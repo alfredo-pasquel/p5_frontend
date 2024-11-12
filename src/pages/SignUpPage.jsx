@@ -199,7 +199,7 @@ const SignUpPage = ({ onLogin }) => {
       }
 
       // Send data to backend
-      const response = await axios.post('http://localhost:5001/api/users/register', processedFormData);
+      const response = await axios.post('https://p5-backend-xidu.onrender.com/api/users/register', processedFormData);
       const { token } = response.data;
 
       if (token) {

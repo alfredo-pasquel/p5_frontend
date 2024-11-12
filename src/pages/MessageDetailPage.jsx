@@ -30,7 +30,7 @@ const MessageDetailPage = () => {
 
       // Fetch the conversation details
       const response = await axios.get(
-        `http://localhost:5001/api/messages/conversation/${conversationId}`,
+        `https://p5-backend-xidu.onrender.com/api/messages/conversation/${conversationId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -40,7 +40,7 @@ const MessageDetailPage = () => {
 
       // Mark messages as read
       await axios.post(
-        `http://localhost:5001/api/messages/conversation/${conversationId}/mark-read`,
+        `https://p5-backend-xidu.onrender.com/api/messages/conversation/${conversationId}/mark-read`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -87,7 +87,7 @@ const MessageDetailPage = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        'http://localhost:5001/api/messages/send',
+        'https://p5-backend-xidu.onrender.com/api/messages/send',
         {
           conversationId,
           text: messageText,
@@ -109,7 +109,7 @@ const MessageDetailPage = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `http://localhost:5001/api/trades/initiate`,
+        `https://p5-backend-xidu.onrender.com/api/trades/initiate`,
         { conversationId },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -129,7 +129,7 @@ const MessageDetailPage = () => {
         try {
           const token = localStorage.getItem('token');
           await axios.post(
-            `http://localhost:5001/api/trades/confirm`,
+            `https://p5-backend-xidu.onrender.com/api/trades/confirm`,
             { conversationId },
             {
               headers: { Authorization: `Bearer ${token}` },
@@ -149,7 +149,7 @@ const MessageDetailPage = () => {
         try {
           const token = localStorage.getItem('token');
           await axios.post(
-            `http://localhost:5001/api/trades/feedback`,
+            `https://p5-backend-xidu.onrender.com/api/trades/feedback`,
             { conversationId, rating, comment },
             {
               headers: { Authorization: `Bearer ${token}` },

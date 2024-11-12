@@ -63,7 +63,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchRecords = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/api/records');
+        const response = await axios.get('https://p5-backend-xidu.onrender.com/api/records');
         setRecords(response.data);
         setFilteredRecords(response.data);
       } catch (error) {
