@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { Favorite, FavoriteBorder } from '@mui/icons-material';
 import axios from 'axios';
-import {jwtDecode} from 'jwt-decode'; // Corrected import
+import {jwtDecode} from 'jwt-decode'; 
 
 const ListingPage = () => {
   const { id } = useParams();

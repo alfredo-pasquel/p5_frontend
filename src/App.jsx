@@ -65,7 +65,7 @@ function App() {
       <GlobalStyles
         styles={{
           body: {
-            backgroundImage: 'url(/src/assets/NeedleDropBackground2.jpg)', // Replace with your actual image path
+            backgroundImage: 'url(/src/assets/NeedleDropBackground2.jpg)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',

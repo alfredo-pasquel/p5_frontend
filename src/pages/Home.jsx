@@ -36,7 +36,7 @@ const StyledBox = styled(Box)(({ theme }) => ({
 
 const StyledTextField = styled(TextField)({
   '&:-webkit-autofill': {
-    backgroundColor: 'rgba(18, 18, 18, 0.5) !important', // Match your background
+    backgroundColor: 'rgba(18, 18, 18, 0.5) !important', // Match background
     WebkitBoxShadow: '0 0 0px 1000px rgba(18, 18, 18, 0.5) inset !important',
     WebkitTextFillColor: '#ffffff !important', // White text color
   },

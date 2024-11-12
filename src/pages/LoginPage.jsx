@@ -86,9 +86,9 @@ const LoginPage = ({ onLogin }) => {
   };
 
   const handleSpotifyLogin = () => {
-    const clientId = '9006782afa394bbeb30c6067df0474c2'; // Replace with your actual Spotify Client ID
-    const redirectUri = 'http://localhost:5173/callback'; // Your app's redirect URI
-    const scopes = 'user-library-read'; // Adjust scopes as needed
+    const clientId = '9006782afa394bbeb30c6067df0474c2'; 
+    const redirectUri = 'http://localhost:5173/callback';
+    const scopes = 'user-library-read'; 
 
     const authUrl = `https://accounts.spotify.com/authorize?response_type=code&client_id=${clientId}&scope=${encodeURIComponent(
       scopes

@@ -4,7 +4,7 @@ import React, { useState, useContext } from 'react';
 import { TextField, Button, Typography, Box, List, ListItem } from '@mui/material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { RecordContext } from '../RecordContext'; // Import RecordContext for context management
+import { RecordContext } from '../RecordContext';
 import { searchSpotifyAlbums } from '../utils/spotifyApi';
 
 const ListRecordPage = () => {
