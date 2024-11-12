@@ -65,7 +65,7 @@ function App() {
       <GlobalStyles
         styles={{
           body: {
-            backgroundImage: 'url(/src/assets/NeedleDropBackground2.jpg)',
+            backgroundImage: 'url(https://ap-p5-vinyl-bucket.s3.us-east-2.amazonaws.com/NeedleDropBackground2.jpg)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
@@ -86,7 +86,7 @@ function App() {
           p: 6, // Adjust padding for taller header
           textAlign: 'center',
           bgcolor: 'primary.main',
-          backgroundImage: 'url(/src/assets/NeedleDropBackground.jpg)', 
+          backgroundImage: 'url(https://ap-p5-vinyl-bucket.s3.us-east-2.amazonaws.com/NeedleDropBackground.jpg)', 
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
