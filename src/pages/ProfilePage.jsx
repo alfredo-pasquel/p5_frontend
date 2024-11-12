@@ -465,9 +465,8 @@ const ProfilePage = () => {
                           paddingTop: '100%', // 1:1 Aspect Ratio
                         }}
                       >
-                        <CardMedia
-                          component="img"
-                          image={album.images[0]?.url}
+                        <DisplayImage
+                          record={album}
                           alt={`${album.name} cover`}
                           sx={{
                             position: 'absolute',
@@ -514,15 +513,7 @@ const ProfilePage = () => {
               <Grid container spacing={2}>
                 {savedRecords.map((record, index) => (
                   <Grid item xs={12} sm={6} md={3} key={index}>
-                    <Card
-                      onClick={() => navigate(`/listing/${record._id}`)}
-                      sx={{
-                        cursor: 'pointer',
-                        '&:hover': {
-                          boxShadow: 6,
-                        },
-                      }}
-                    >
+                    <Card>
                       <Box
                         sx={{
                           position: 'relative',
@@ -530,9 +521,8 @@ const ProfilePage = () => {
                           paddingTop: '100%', // 1:1 Aspect Ratio
                         }}
                       >
-                        <CardMedia
-                          component="img"
-                          image={record.coverUrl}
+                        <DisplayImage
+                          record={record}
                           alt={`${record.title} cover`}
                           sx={{
                             position: 'absolute',
@@ -581,9 +571,8 @@ const ProfilePage = () => {
                           paddingTop: '100%', // 1:1 Aspect Ratio
                         }}
                       >
-                        <CardMedia
-                          component="img"
-                          image={record.coverUrl}
+                        <DisplayImage
+                          record={record}
                           alt={`${record.title} cover`}
                           sx={{
                             position: 'absolute',
@@ -649,9 +638,8 @@ const ProfilePage = () => {
                           paddingTop: '100%', // 1:1 Aspect Ratio
                         }}
                       >
-                        <CardMedia
-                          component="img"
-                          image={record.coverUrl}
+                        <DisplayImage
+                          record={record}
                           alt={`${record.title} cover`}
                           sx={{
                             position: 'absolute',

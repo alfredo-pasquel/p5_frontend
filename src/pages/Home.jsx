@@ -84,35 +84,45 @@ const HomePage = () => {
   const handleSearch = () => {
     let filtered = records;
 
-    if (searchQuery.artist) {
+    // Normalize search inputs
+    const normalizedArtist = normalizeInput(searchQuery.artist);
+    const normalizedGenre = normalizeInput(searchQuery.genre);
+    const normalizedAlbum = normalizeInput(searchQuery.album);
+    const trimmedYear = searchQuery.year.trim();
+
+    // Filter by Artist
+    if (normalizedArtist) {
       filtered = filtered.filter((record) => {
         const artists = Array.isArray(record.artist)
           ? record.artist.flat().join(', ')
-          : record.artist;
-        return artists?.toLowerCase().includes(searchQuery.artist.toLowerCase());
+          : record.artist || '';
+        return artists.toLowerCase().includes(normalizedArtist);
       });
     }
 
-    if (searchQuery.genre) {
+    // Filter by Genre
+    if (normalizedGenre) {
       filtered = filtered.filter((record) => {
         const genres = Array.isArray(record.genres)
           ? record.genres.flat().join(', ')
-          : record.genres;
-        return genres?.toLowerCase().includes(searchQuery.genre.toLowerCase());
+          : record.genres || '';
+        return genres.toLowerCase().includes(normalizedGenre);
       });
     }
 
-    if (searchQuery.year) {
+    // Filter by Year
+    if (trimmedYear) {
       filtered = filtered.filter(
         (record) =>
           record.releaseDate &&
-          new Date(record.releaseDate).getFullYear().toString() === searchQuery.year
+          new Date(record.releaseDate).getFullYear().toString() === trimmedYear
       );
     }
 
-    if (searchQuery.album) {
+    // Filter by Album
+    if (normalizedAlbum) {
       filtered = filtered.filter((record) =>
-        record.title?.toLowerCase().includes(searchQuery.album.toLowerCase())
+        record.title?.toLowerCase().includes(normalizedAlbum)
       );
     }
 
