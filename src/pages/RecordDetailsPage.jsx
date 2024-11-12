@@ -1,4 +1,5 @@
-// RecordDetailsPage.jsx
+// src/pages/RecordDetailsPage.jsx
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { TextField, Select, MenuItem, Button, Typography, Box } from '@mui/material';
@@ -55,6 +56,26 @@ const RecordDetailsPage = () => {
 
     if (albumId) {
       fetchRecord();
+    } else {
+      // Initialize empty record and formData if albumId is not present
+      setRecord({
+        title: '',
+        artist: '',
+        albumId: '',
+        genres: [],
+        coverUrl: '',
+        releaseDate: '',
+      });
+
+      setFormData({
+        title: '',
+        artist: '',
+        genres: '',
+        releaseDate: '',
+        condition: 'Used',
+        description: '',
+        shipping: 'No Shipping',
+      });
     }
   }, [albumId]);
 
@@ -70,19 +91,18 @@ const RecordDetailsPage = () => {
         params: {
           fileName: selectedFile.name,
           fileType: selectedFile.type,
-          albumId: record.albumId
-        }
+          albumId: record.albumId || 'manual-upload', // Use a default value if albumId is not available
+        },
       });
 
       const { uploadUrl, imageUrl } = response.data;
       await axios.put(uploadUrl, selectedFile, {
-        headers: { 'Content-Type': selectedFile.type }
+        headers: { 'Content-Type': selectedFile.type },
       });
 
       setImageUrls((prev) => [...prev, imageUrl]);
-      console.log("Updated image URLs:", imageUrls); // Log updated image URLs
     } catch (error) {
-      console.error("Error uploading file:", error);
+      console.error('Error uploading file:', error);
     }
   };
 
@@ -91,19 +111,27 @@ const RecordDetailsPage = () => {
     try {
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('userId');
-  
+
       const dataToSubmit = {
-        ...record,
-        ...formData,
         userId,
+        title: formData.title,
+        artist: formData.artist,
+        genres: formData.genres.split(',').map((genre) => genre.trim()),
+        releaseDate: formData.releaseDate,
+        condition: formData.condition,
+        description: formData.description || '',
+        shipping: formData.shipping || 'No Shipping',
         images: imageUrls,
-        description: formData.description || '',  // Default to empty string if not provided
-        shipping: formData.shipping || 'No Shipping' // Default to 'No Shipping'
       };
-  
-      console.log("Submitting with images:", imageUrls);
-      console.log("Form data:", dataToSubmit);
-  
+
+      // Include albumId and coverUrl only if they exist
+      if (record.albumId) {
+        dataToSubmit.albumId = record.albumId;
+      }
+      if (record.coverUrl) {
+        dataToSubmit.coverUrl = record.coverUrl;
+      }
+
       const response = await axios.post(
         'http://localhost:5001/api/records/create',
         dataToSubmit,
@@ -113,22 +141,22 @@ const RecordDetailsPage = () => {
           },
         }
       );
-  
+
       const newRecordId = response.data._id; // Capture the ID from the server response
       alert('Record listed successfully!');
       navigate(`/listing/${newRecordId}`); // Navigate to the new ListingPage
     } catch (error) {
       console.error('Error creating record listing:', error);
-      alert("Failed to list the record. Please try again.");
+      alert('Failed to list the record. Please try again.');
     }
   };
-  
-  if (!record) return <div>Loading...</div>;
+
+  if (record === null) return <div>Loading...</div>;
 
   return (
     <Box sx={{ mt: 2, mx: 'auto', width: '60%', textAlign: 'center' }}>
       <Typography variant="h4">List Record for Sale</Typography>
-      
+
       <TextField
         label="Title"
         name="title"
@@ -136,6 +164,7 @@ const RecordDetailsPage = () => {
         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
         fullWidth
         sx={{ my: 2 }}
+        required
       />
       <TextField
         label="Artist"
@@ -144,6 +173,7 @@ const RecordDetailsPage = () => {
         onChange={(e) => setFormData({ ...formData, artist: e.target.value })}
         fullWidth
         sx={{ my: 2 }}
+        required
       />
       <TextField
         label="Release Date"
@@ -154,21 +184,33 @@ const RecordDetailsPage = () => {
         sx={{ my: 2 }}
       />
       <TextField
-        label="Genres"
+        label="Genres (separate by commas)"
         name="genres"
         value={formData.genres}
         onChange={(e) => setFormData({ ...formData, genres: e.target.value })}
         fullWidth
         sx={{ my: 2 }}
       />
-      <Box component="img" src={record.coverUrl} alt={`${record.title} cover`} sx={{ width: '100%', maxWidth: 300, borderRadius: 2, my: 2 }} />
-      <iframe
-        src={`https://open.spotify.com/embed/album/${record.albumId}`}
-        width="100%"
-        height="80"
-        frameBorder="0"
-        allow="encrypted-media"
-      ></iframe>
+
+      {/* Conditionally render cover image and Spotify player */}
+      {record.coverUrl && (
+        <Box
+          component="img"
+          src={record.coverUrl}
+          alt={`${record.title} cover`}
+          sx={{ width: '100%', maxWidth: 300, borderRadius: 2, my: 2 }}
+        />
+      )}
+      {record.albumId && (
+        <iframe
+          src={`https://open.spotify.com/embed/album/${record.albumId}`}
+          width="100%"
+          height="80"
+          frameBorder="0"
+          allow="encrypted-media"
+          title="Spotify Player"
+        ></iframe>
+      )}
 
       <Box sx={{ mt: 4 }}>
         <input type="file" onChange={handleFileChange} />
@@ -179,9 +221,23 @@ const RecordDetailsPage = () => {
 
       <Box sx={{ mt: 4 }}>
         <Typography variant="h6">Uploaded Images</Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center', mt: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            justifyContent: 'center',
+            mt: 2,
+          }}
+        >
           {imageUrls.map((url, index) => (
-            <Box component="img" key={index} src={url} alt={`Record image ${index + 1}`} sx={{ width: 100, height: 100, borderRadius: 2 }} />
+            <Box
+              component="img"
+              key={index}
+              src={url}
+              alt={`Record image ${index + 1}`}
+              sx={{ width: 100, height: 100, borderRadius: 2 }}
+            />
           ))}
         </Box>
       </Box>

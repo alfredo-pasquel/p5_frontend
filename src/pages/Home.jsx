@@ -104,7 +104,9 @@ const HomePage = () => {
 
     if (searchQuery.year) {
       filtered = filtered.filter(
-        (record) => new Date(record.releaseDate).getFullYear().toString() === searchQuery.year
+        (record) =>
+          record.releaseDate &&
+          new Date(record.releaseDate).getFullYear().toString() === searchQuery.year
       );
     }
 
@@ -220,69 +222,81 @@ const HomePage = () => {
 
       {/* Listings */}
       <Grid container spacing={3}>
-        {paginatedRecords.map((record) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={record._id}>
-            <Link to={`/listing/${record._id}`} style={{ textDecoration: 'none' }}>
-              <StyledCard
-                sx={{
-                  height: 400,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  backgroundColor: 'rgba(18, 18, 18, 0.5)',
-                  backdropFilter: 'blur(10px)',
-                  borderRadius: 2,
-                  StyledBoxShadow: 3,
-                  position: 'relative',
-                }}
-              >
-                {/* Display 'Traded' badge */}
-                {record.isTraded && (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: 8,
-                      right: 8,
-                      backgroundColor: 'rgba(255,0,0,0.8)',
-                      color: 'white',
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      zIndex: 1,
-                    }}
-                  >
-                    Traded
-                  </Box>
-                )}
-                <CardMedia
-                  component="img"
-                  image={record.coverUrl}
-                  alt={`${record.title} cover`}
+        {paginatedRecords.map((record) => {
+          // Determine the image to display
+          const displayImage = record.coverUrl || (record.images && record.images[0]);
+          return (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={record._id}>
+              <Link to={`/listing/${record._id}`} style={{ textDecoration: 'none' }}>
+                <StyledCard
                   sx={{
-                    height: 200,
-                    objectFit: 'contain',
-                    objectPosition: 'center',
-                    aspectRatio: '1 / 1',
+                    height: 400,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    backgroundColor: 'rgba(18, 18, 18, 0.5)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: 2,
+                    boxShadow: 3,
+                    position: 'relative',
                   }}
-                />
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Typography variant="h6" gutterBottom>
-                    {record.title}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    {Array.isArray(record.artist) ? record.artist.join(', ') : record.artist}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Genre:{' '}
-                    {Array.isArray(record.genres) ? record.genres.join(', ') : record.genres}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Year: {new Date(record.releaseDate).getFullYear()}
-                  </Typography>
-                </CardContent>
-              </StyledCard>
-            </Link>
-          </Grid>
-        ))}
+                >
+                  {/* Display 'Traded' badge */}
+                  {record.isTraded && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        backgroundColor: 'rgba(255,0,0,0.8)',
+                        color: 'white',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        zIndex: 1,
+                      }}
+                    >
+                      Traded
+                    </Box>
+                  )}
+                  {displayImage && (
+                    <CardMedia
+                      component="img"
+                      image={displayImage}
+                      alt={`${record.title} cover`}
+                      sx={{
+                        height: 200,
+                        objectFit: 'contain',
+                        objectPosition: 'center',
+                        aspectRatio: '1 / 1',
+                      }}
+                    />
+                  )}
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Typography variant="h6" gutterBottom>
+                      {record.title}
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      {Array.isArray(record.artist) ? record.artist.join(', ') : record.artist}
+                    </Typography>
+                    {record.genres && (
+                      <Typography variant="body2" color="textSecondary">
+                        Genre:{' '}
+                        {Array.isArray(record.genres)
+                          ? record.genres.join(', ')
+                          : record.genres}
+                      </Typography>
+                    )}
+                    {record.releaseDate && (
+                      <Typography variant="body2" color="textSecondary">
+                        Year: {new Date(record.releaseDate).getFullYear()}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </StyledCard>
+              </Link>
+            </Grid>
+          );
+        })}
       </Grid>
 
       {/* Pagination */}

@@ -3,11 +3,19 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Rating, Box, Typography, Card, CardMedia, CardContent, Modal, IconButton, Button
+  Rating,
+  Box,
+  Typography,
+  Card,
+  CardMedia,
+  CardContent,
+  Modal,
+  IconButton,
+  Button,
 } from '@mui/material';
 import { Favorite, FavoriteBorder } from '@mui/icons-material';
 import axios from 'axios';
-import {jwtDecode} from 'jwt-decode';
+import {jwtDecode} from 'jwt-decode'; // Corrected import
 
 const ListingPage = () => {
   const { id } = useParams();
@@ -106,7 +114,7 @@ const ListingPage = () => {
       const recordId = record._id;
 
       if (buyerId === sellerId) {
-        alert("You cannot message yourself.");
+        alert('You cannot message yourself.');
         return;
       }
 
@@ -136,34 +144,49 @@ const ListingPage = () => {
   if (error) return <Typography>{error}</Typography>;
   if (!record) return <Typography>Loading...</Typography>;
 
+  // Determine the image to display
+  const displayImage = record.coverUrl || (record.images && record.images[0]);
+
   return (
-    <Box sx={{ maxWidth: 800, margin: 'auto', mt: 4, p: 2, backgroundColor: 'rgba(18, 18, 18, 0.5)' }}>
+    <Box
+      sx={{ maxWidth: 800, margin: 'auto', mt: 4, p: 2, backgroundColor: 'rgba(18, 18, 18, 0.5)' }}
+    >
       <Card>
         {/* Record Details */}
-        <CardMedia
-          component="img"
-          image={record.coverUrl}
-          alt={`${record.title} cover`}
-          sx={{ 
-            height: 400, 
-            objectFit: 'contain',
-            aspectRatio: '1 / 1' // Keep square aspect ratio for album covers
-          }}
-        />
+        {displayImage && (
+          <CardMedia
+            component="img"
+            image={displayImage}
+            alt={`${record.title} cover`}
+            sx={{
+              height: 400,
+              objectFit: 'contain',
+              aspectRatio: '1 / 1', // Keep square aspect ratio for album covers
+            }}
+          />
+        )}
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="h4" gutterBottom>{record.title}</Typography>
+            <Typography variant="h4" gutterBottom>
+              {record.title}
+            </Typography>
             <IconButton onClick={handleSave} disabled={record.isTraded}>
               {isSaved ? <Favorite color="error" /> : <FavoriteBorder />}
             </IconButton>
           </Box>
-          <Typography variant="h6" color="textSecondary">{record.artist.join(', ')}</Typography>
-          <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-            Genre: {record.genres.join(', ')}
+          <Typography variant="h6" color="textSecondary">
+            {Array.isArray(record.artist) ? record.artist.join(', ') : record.artist}
           </Typography>
-          <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-            Released: {record.releaseDate}
-          </Typography>
+          {record.genres && (
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+              Genre: {Array.isArray(record.genres) ? record.genres.join(', ') : record.genres}
+            </Typography>
+          )}
+          {record.releaseDate && (
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+              Released: {record.releaseDate}
+            </Typography>
+          )}
 
           {/* Display 'Traded' status */}
           {record.isTraded && (
@@ -172,33 +195,46 @@ const ListingPage = () => {
             </Typography>
           )}
 
-          <Box sx={{ mt: 2 }}>
-            <iframe
-              src={`https://open.spotify.com/embed/album/${record.albumId}`}
-              width="100%"
-              height="80"
-              frameBorder="0"
-              allow="encrypted-media"
-              title="Spotify Player"
-            ></iframe>
-          </Box>
+          {/* Spotify Player */}
+          {record.albumId && (
+            <Box sx={{ mt: 2 }}>
+              <iframe
+                src={`https://open.spotify.com/embed/album/${record.albumId}`}
+                width="100%"
+                height="80"
+                frameBorder="0"
+                allow="encrypted-media"
+                title="Spotify Player"
+              ></iframe>
+            </Box>
+          )}
 
-          <Typography variant="h6" sx={{ mt: 3 }}>Listing Details</Typography>
-          <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-            Condition: {record.condition}
+          <Typography variant="h6" sx={{ mt: 3 }}>
+            Listing Details
           </Typography>
-          <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-            Description: {record.description}
-          </Typography>
-          <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-            Shipping: {record.shipping}
-          </Typography>
+          {record.condition && (
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+              Condition: {record.condition}
+            </Typography>
+          )}
+          {record.description && (
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+              Description: {record.description}
+            </Typography>
+          )}
+          {record.shipping && (
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+              Shipping: {record.shipping}
+            </Typography>
+          )}
         </CardContent>
 
         {/* Seller Information */}
         {record.sellerData && (
           <CardContent>
-            <Typography variant="h6" sx={{ mt: 3 }}>Seller Information</Typography>
+            <Typography variant="h6" sx={{ mt: 3 }}>
+              Seller Information
+            </Typography>
             <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
               Username: {record.sellerData.username}
             </Typography>
@@ -237,23 +273,33 @@ const ListingPage = () => {
             )}
           </CardContent>
         )}
-        
+
         {/* User Photos */}
-        <CardContent>
-          <Typography variant="h6" gutterBottom>User Photos</Typography>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            {record.images.map((url, index) => (
-              <CardMedia
-                key={index}
-                component="img"
-                image={url}
-                alt={`User-uploaded ${index + 1}`}
-                sx={{ width: 100, height: 100, borderRadius: 2, objectFit: 'cover', cursor: 'pointer' }}
-                onClick={() => handleImageClick(url)}
-              />
-            ))}
-          </Box>
-        </CardContent>
+        {record.images && record.images.length > 0 && (
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              User Photos
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              {record.images.map((url, index) => (
+                <CardMedia
+                  key={index}
+                  component="img"
+                  image={url}
+                  alt={`User-uploaded ${index + 1}`}
+                  sx={{
+                    width: 100,
+                    height: 100,
+                    borderRadius: 2,
+                    objectFit: 'cover',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => handleImageClick(url)}
+                />
+              ))}
+            </Box>
+          </CardContent>
+        )}
       </Card>
 
       {/* Image Modal */}

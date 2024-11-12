@@ -1,3 +1,5 @@
+// src/pages/ListRecordPage.jsx
+
 import React, { useState, useContext } from 'react';
 import { TextField, Button, Typography, Box, List, ListItem } from '@mui/material';
 import axios from 'axios';
@@ -70,7 +72,30 @@ const ListRecordPage = () => {
         </Button>
       </Box>
 
-      {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
+      {error && (
+        <Typography color="error" sx={{ mt: 2 }}>
+          {error}
+        </Typography>
+      )}
+
+      {/* Option to create listing manually */}
+      <Box sx={{ mt: 2 }}>
+        <Button
+          onClick={() => navigate('/edit-record')}
+          variant="contained"
+          fullWidth
+          sx={{
+            backgroundColor: '#000', // Black background
+            color: '#fff', // White text
+            '&:hover': {
+              backgroundColor: '#333', // Slightly lighter black on hover
+            },
+            mt: 2,
+          }}
+        >
+          Can't find your album? Create a listing manually
+        </Button>
+      </Box>
 
       <List sx={{ mt: 2 }}>
         {results.map((album) => (
@@ -97,6 +122,7 @@ const ListRecordPage = () => {
                 frameBorder="0"
                 allow="encrypted-media"
                 style={{ borderRadius: '8px', marginTop: '10px' }}
+                title={`Spotify Player for ${album.name}`}
               ></iframe>
             </Box>
           </ListItem>

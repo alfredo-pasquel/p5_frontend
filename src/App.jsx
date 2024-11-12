@@ -136,7 +136,7 @@ function App() {
         <Route path="/signup" element={<SignUpPage onLogin={handleLogin} />} />
         <Route path="/profile" element={isLoggedIn ? <ProfilePage /> : <Navigate to="/login" />} />
         <Route path="/list-record" element={isLoggedIn ? <ListRecordPage /> : <Navigate to="/login" />} />
-        <Route path="/edit-record/:albumId" element={<RecordDetailsPage />} />
+        <Route path="/edit-record/:albumId?" element={<RecordDetailsPage />} />
         <Route path="/listing/:id" element={<ListingPage />} />
         <Route path="/callback" element={<SpotifyCallback />} />
         <Route path="/messages" element={<MessagesPage />} />

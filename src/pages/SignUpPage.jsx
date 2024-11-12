@@ -19,21 +19,25 @@ import {
   Checkbox,
   ListItemText,
   Alert,
+  InputAdornment,
+  IconButton,
+  LinearProgress,
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { styled } from '@mui/system';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import countries from '../utils/countries';
 import genres from '../utils/genres';
 
-// Styled components
 const StyledCard = styled(Card)(({ theme }) => ({
   padding: theme.spacing(4),
   maxWidth: 600,
   margin: 'auto',
   marginTop: theme.spacing(8),
   backgroundColor: 'rgba(18, 18, 18, 0.5)',
-  backdropFilter: 'blur(10px)', // Adds subtle background blur
-  borderRadius: theme.spacing(2), // Slightly round corners for aesthetics
+  backdropFilter: 'blur(10px)',
+  borderRadius: theme.spacing(2),
 }));
 
 const StyledBox = styled(Box)(({ theme }) => ({
@@ -44,9 +48,9 @@ const StyledBox = styled(Box)(({ theme }) => ({
 
 const StyledTextField = styled(TextField)({
   '&:-webkit-autofill': {
-    backgroundColor: 'rgba(18, 18, 18, 0.5) !important', // Match your background
+    backgroundColor: 'rgba(18, 18, 18, 0.5) !important',
     WebkitBoxShadow: '0 0 0px 1000px rgba(18, 18, 18, 0.5) inset !important',
-    WebkitTextFillColor: '#ffffff !important', // White text color
+    WebkitTextFillColor: '#ffffff !important',
   },
   '&:hover:-webkit-autofill': {
     WebkitBoxShadow: '0 0 0px 1000px rgba(18, 18, 18, 0.5) inset !important',
@@ -56,7 +60,22 @@ const StyledTextField = styled(TextField)({
   },
 });
 
-const SignUpPage = () => {
+const PasswordStrengthBar = styled(LinearProgress)(({ theme, strength }) => ({
+  height: 10,
+  borderRadius: 5,
+  backgroundColor: theme.palette.grey[300],
+  '& .MuiLinearProgress-bar': {
+    borderRadius: 5,
+    backgroundColor:
+      strength <= 2
+        ? theme.palette.error.main
+        : strength === 3
+        ? theme.palette.warning.main
+        : theme.palette.success.main,
+  },
+}));
+
+const SignUpPage = ({ onLogin }) => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -67,14 +86,33 @@ const SignUpPage = () => {
     favoriteArtists: '',
     about: '',
   });
-  const [customGenre, setCustomGenre] = useState(''); // State for custom genre
-  const [showCustomGenre, setShowCustomGenre] = useState(false); // Control display of custom genre input
+  const [customGenre, setCustomGenre] = useState('');
+  const [showCustomGenre, setShowCustomGenre] = useState(false);
   const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [validationErrors, setValidationErrors] = useState({});
+
   const navigate = useNavigate();
+
+  const calculatePasswordStrength = (password) => {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/\d/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    return strength;
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+
+    if (name === 'password') {
+      setPasswordStrength(calculatePasswordStrength(value));
+    }
   };
 
   const handleGenresChange = (event) => {
@@ -87,62 +125,101 @@ const SignUpPage = () => {
       setShowCustomGenre(true);
     } else {
       setShowCustomGenre(false);
-      setCustomGenre(''); // Clear custom genre if "Other" is deselected
+      setCustomGenre('');
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setValidationErrors({});
+
+    const errors = {};
+
+    // Username validation
+    if (!formData.username) {
+      errors.username = 'Username is required';
+    } else if (formData.username.length > 30) {
+      errors.username = 'Username must be less than 30 characters';
+    }
+
+    // Email validation
+    if (!formData.email) {
+      errors.email = 'Email is required';
+    } else if (formData.email.length > 50) {
+      errors.email = 'Email must be less than 50 characters';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Email is not valid';
+    }
+
+    // Password validation
+    if (!formData.password) {
+      errors.password = 'Password is required';
+    } else {
+      if (formData.password.length < 8) {
+        errors.password = 'Password must be at least 8 characters';
+      }
+      if (!/[A-Z]/.test(formData.password)) {
+        errors.password = 'Include at least one uppercase letter';
+      }
+      if (!/[a-z]/.test(formData.password)) {
+        errors.password = 'Include at least one lowercase letter';
+      }
+      if (!/[0-9]/.test(formData.password)) {
+        errors.password = 'Include at least one number';
+      }
+      if (!/[^A-Za-z0-9]/.test(formData.password)) {
+        errors.password = 'Include at least one special character';
+      }
+    }
+
+    // Confirm password validation
+    if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
     try {
-      // Process favoriteArtists
+      // Prepare form data
       const processedFormData = {
         ...formData,
-        favoriteArtists: formData.favoriteArtists.split(',').map(artist => artist.trim()),
+        favoriteArtists: formData.favoriteArtists.split(',').map((artist) => artist.trim()),
       };
 
-      // Replace "Other" with customGenre if provided
+      // Handle custom genres
       if (customGenre.trim() !== '') {
-        processedFormData.favoriteGenres = processedFormData.favoriteGenres.map(genre =>
+        processedFormData.favoriteGenres = processedFormData.favoriteGenres.map((genre) =>
           genre === 'Other' ? customGenre.trim() : genre
         );
       } else {
-        // Remove "Other" if no customGenre is provided
-        processedFormData.favoriteGenres = processedFormData.favoriteGenres.filter(genre => genre !== 'Other');
+        processedFormData.favoriteGenres = processedFormData.favoriteGenres.filter((genre) => genre !== 'Other');
       }
 
+      // Send data to backend
       const response = await axios.post('http://localhost:5001/api/users/register', processedFormData);
       const { token } = response.data;
 
       if (token) {
+        // Save token to localStorage
         localStorage.setItem('token', token);
-        // Optionally, decode token to get userId
-        // Example: const decoded = jwtDecode(token);
-        // localStorage.setItem('userId', decoded.userId);
-        console.log('Token saved:', localStorage.getItem('token'));
-        // console.log('User ID saved:', localStorage.getItem('userId'));
 
-        // Optionally, call onLogin() if passed as a prop
-        // onLogin();
-        navigate('/profile'); // Redirect to profile after successful signup
+        // Call onLogin to update app state
+        if (onLogin) {
+          onLogin();
+        }
+
+        // Redirect to profile page
+        navigate('/profile');
       } else {
         throw new Error('Token missing from response');
       }
     } catch (err) {
-      console.error("Error signing up:", err);
+      console.error('Error signing up:', err);
       setError(err.response?.data?.error || 'Signup failed. Please try again.');
     }
-  };
-
-  const handleSpotifySignUp = () => {
-    const clientId = '9006782afa394bbeb30c6067df0474c2'; // Replace with your actual Spotify Client ID
-    const redirectUri = 'http://localhost:5173/callback'; // Your app's redirect URI
-    const scopes = 'user-library-read'; // Adjust scopes as needed
-
-    const authUrl = `https://accounts.spotify.com/authorize?response_type=code&client_id=${clientId}&scope=${encodeURIComponent(
-      scopes
-    )}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-
-    window.location.href = authUrl;
   };
 
   return (
@@ -162,6 +239,7 @@ const SignUpPage = () => {
               </Alert>
             )}
             <Grid container spacing={2}>
+              {/* Username and Country Fields */}
               <Grid item xs={12} sm={6}>
                 <StyledTextField
                   autoComplete="username"
@@ -172,6 +250,9 @@ const SignUpPage = () => {
                   label="Username"
                   value={formData.username}
                   onChange={handleChange}
+                  error={!!validationErrors.username}
+                  helperText={validationErrors.username}
+                  inputProps={{ maxLength: 30 }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -193,6 +274,8 @@ const SignUpPage = () => {
                   </Select>
                 </FormControl>
               </Grid>
+
+              {/* Email Field */}
               <Grid item xs={12}>
                 <StyledTextField
                   required
@@ -203,34 +286,83 @@ const SignUpPage = () => {
                   autoComplete="email"
                   value={formData.email}
                   onChange={handleChange}
+                  error={!!validationErrors.email}
+                  helperText={validationErrors.email}
+                  inputProps={{ maxLength: 50 }}
                 />
               </Grid>
+
+              {/* Password Field */}
               <Grid item xs={12}>
                 <StyledTextField
                   required
                   fullWidth
                   name="password"
                   label="Password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   id="password"
                   autoComplete="new-password"
                   value={formData.password}
                   onChange={handleChange}
+                  error={!!validationErrors.password}
+                  helperText={
+                    validationErrors.password ||
+                    'At least 8 chars, include uppercase, lowercase, number, special char.'
+                  }
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
               </Grid>
+
+              {/* Password Strength Meter */}
+              {formData.password && (
+                <Grid item xs={12}>
+                  <Typography variant="body2">Password Strength:</Typography>
+                  <PasswordStrengthBar
+                    variant="determinate"
+                    value={(passwordStrength / 5) * 100}
+                    strength={passwordStrength}
+                  />
+                  <Typography variant="caption">
+                    {['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][passwordStrength - 1]}
+                  </Typography>
+                </Grid>
+              )}
+
+              {/* Confirm Password Field */}
               <Grid item xs={12}>
                 <StyledTextField
                   required
                   fullWidth
                   name="confirmPassword"
                   label="Confirm Password"
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   id="confirmPassword"
                   autoComplete="new-password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  error={!!validationErrors.confirmPassword}
+                  helperText={validationErrors.confirmPassword}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end">
+                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
               </Grid>
+
+              {/* Favorite Genres Field */}
               <Grid item xs={12}>
                 <FormControl fullWidth>
                   <InputLabel id="favorite-genres-label">Favorite Genres</InputLabel>
@@ -252,6 +384,8 @@ const SignUpPage = () => {
                   </Select>
                 </FormControl>
               </Grid>
+
+              {/* Custom Genre Field */}
               {showCustomGenre && (
                 <Grid item xs={12}>
                   <StyledTextField
@@ -264,6 +398,8 @@ const SignUpPage = () => {
                   />
                 </Grid>
               )}
+
+              {/* Favorite Artists Field */}
               <Grid item xs={12}>
                 <StyledTextField
                   label="Favorite Artists (separate by commas)"
@@ -274,6 +410,8 @@ const SignUpPage = () => {
                   margin="normal"
                 />
               </Grid>
+
+              {/* About Field */}
               <Grid item xs={12}>
                 <StyledTextField
                   label="About"
@@ -287,18 +425,16 @@ const SignUpPage = () => {
                 />
               </Grid>
             </Grid>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              sx={{ mt: 3, mb: 2 }}
-            >
+
+            {/* Submit Button */}
+            <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 3, mb: 2 }}>
               Sign Up
             </Button>
+
+            {/* Redirect to Login */}
             <Grid container justifyContent="flex-end">
               <Grid item>
-                <Button variant="text" onClick={() => navigate('/login')} sx={{color: 'white'}}>
+                <Button variant="text" onClick={() => navigate('/login')} sx={{ color: 'white' }}>
                   Already have an account? Sign in
                 </Button>
               </Grid>
