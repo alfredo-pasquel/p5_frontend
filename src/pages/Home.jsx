@@ -84,6 +84,8 @@ const HomePage = () => {
   const handleSearch = () => {
     let filtered = records;
 
+    const normalizeInput = (input) => input.trim().toLowerCase().replace(/\s+/g, ' ');
+
     // Normalize search inputs
     const normalizedArtist = normalizeInput(searchQuery.artist);
     const normalizedGenre = normalizeInput(searchQuery.genre);

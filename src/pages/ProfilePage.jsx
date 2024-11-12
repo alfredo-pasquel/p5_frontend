@@ -59,7 +59,10 @@ const ProfilePage = () => {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('No token found in localStorage.');
 
-        const { userId } = jwtDecode(token);
+        const decodedToken = jwtDecode(token);
+        const userId = decodedToken.userId;
+        if (!userId) throw new Error('Invalid token: userId not found.');
+
         const userResponse = await axios.get(`https://p5-backend-xidu.onrender.com/api/users/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -99,17 +102,24 @@ const ProfilePage = () => {
         // Fetch saved items
         const savedItemDetails = await Promise.all(
           userResponse.data.savedItems.map(async (recordId) => {
-            const recordResponse = await axios.get(
-              `https://p5-backend-xidu.onrender.com/api/records/${recordId}`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            );
-            return recordResponse.data;
+            try {
+              const recordResponse = await axios.get(
+                `https://p5-backend-xidu.onrender.com/api/records/${recordId}`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+              return recordResponse.data;
+            } catch (error) {
+              console.warn(`Saved record with ID ${recordId} not found.`);
+              return null;
+            }
           })
         );
 
-        setSavedRecords(savedItemDetails);
+        // Filter out any null responses
+        const validSavedRecords = savedItemDetails.filter((record) => record !== null);
+        setSavedRecords(validSavedRecords);
 
         // Fetch notifications
         const notificationsResponse = await axios.get(
@@ -192,7 +202,10 @@ const ProfilePage = () => {
   const saveProfileChanges = async () => {
     try {
       const token = localStorage.getItem('token');
-      const { userId } = jwtDecode(token);
+      const decodedToken = jwtDecode(token);
+      const userId = decodedToken.userId;
+      if (!userId) throw new Error('Invalid token: userId not found.');
+
       const response = await axios.put(
         `https://p5-backend-xidu.onrender.com/api/users/${userId}`,
         updatedUserData,
@@ -220,6 +233,8 @@ const ProfilePage = () => {
       } catch (error) {
         console.error('Error searching albums:', error);
       }
+    } else {
+      setAlbumOptions([]);
     }
   };
 
@@ -244,6 +259,7 @@ const ProfilePage = () => {
       setAlbumOptions([]);
     } catch (error) {
       console.error('Error adding to Looking For:', error);
+      alert('Failed to add album to Looking For list.');
     }
   };
 
@@ -312,6 +328,7 @@ const ProfilePage = () => {
                       label="Trade Count"
                       name="tradeCount"
                       value={userData.tradeCount}
+                      onChange={handleInputChange}
                       fullWidth
                       variant="outlined"
                       type="number"
@@ -455,47 +472,61 @@ const ProfilePage = () => {
 
             {lookingForAlbums.length > 0 ? (
               <Grid container spacing={2}>
-                {lookingForAlbums.map((album, index) => (
-                  <Grid item xs={12} sm={6} md={3} key={index}>
-                    <Card>
-                      <Box
-                        sx={{
-                          position: 'relative',
-                          width: '100%',
-                          paddingTop: '100%', // 1:1 Aspect Ratio
-                        }}
-                      >
-                        <DisplayImage
-                          record={album}
-                          alt={`${album.name} cover`}
+                {lookingForAlbums.map((album, index) => {
+                  // Enhanced Fallback Logic for album images
+                  const displayImage =
+                    album.coverUrl ||
+                    (album.images && album.images.length > 0
+                      ? typeof album.images[0] === 'object'
+                        ? album.images[0].url
+                        : album.images[0]
+                      : '/images/placeholder.jpg'); // Ensure placeholder exists
+
+                  return (
+                    <Grid item xs={12} sm={6} md={3} key={index}>
+                      <Card>
+                        <Box
                           sx={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
+                            position: 'relative',
                             width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
+                            paddingTop: '100%', // 1:1 Aspect Ratio
                           }}
-                        />
-                      </Box>
-                      <CardContent sx={{ textAlign: 'center' }}>
-                        <Typography variant="h6">{album.name}</Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {album.artists[0].name}
-                        </Typography>
-                      </CardContent>
-                      <CardActions sx={{ justifyContent: 'center' }}>
-                        <IconButton
-                          edge="end"
-                          aria-label="delete"
-                          onClick={() => handleRemoveFromLookingFor(album.id)}
                         >
-                          <Delete />
-                        </IconButton>
-                      </CardActions>
-                    </Card>
-                  </Grid>
-                ))}
+                          {displayImage && (
+                            <CardMedia
+                              component="img"
+                              image={displayImage}
+                              alt={`${album.name} cover`}
+                              sx={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
+                            />
+                          )}
+                        </Box>
+                        <CardContent sx={{ textAlign: 'center' }}>
+                          <Typography variant="h6">{album.name}</Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            {album.artists[0].name}
+                          </Typography>
+                        </CardContent>
+                        <CardActions sx={{ justifyContent: 'center' }}>
+                          <IconButton
+                            edge="end"
+                            aria-label="delete"
+                            onClick={() => handleRemoveFromLookingFor(album.id)}
+                          >
+                            <Delete />
+                          </IconButton>
+                        </CardActions>
+                      </Card>
+                    </Grid>
+                  );
+                })}
               </Grid>
             ) : (
               <Typography>No items in 'Looking For' list.</Typography>
@@ -511,38 +542,52 @@ const ProfilePage = () => {
             </Typography>
             {savedRecords.length > 0 ? (
               <Grid container spacing={2}>
-                {savedRecords.map((record, index) => (
-                  <Grid item xs={12} sm={6} md={3} key={index}>
-                    <Card>
-                      <Box
-                        sx={{
-                          position: 'relative',
-                          width: '100%',
-                          paddingTop: '100%', // 1:1 Aspect Ratio
-                        }}
-                      >
-                        <DisplayImage
-                          record={record}
-                          alt={`${record.title} cover`}
+                {savedRecords.map((record, index) => {
+                  // Enhanced Fallback Logic for saved records images
+                  const displayImage =
+                    record.coverUrl ||
+                    (record.images && record.images.length > 0
+                      ? typeof record.images[0] === 'object'
+                        ? record.images[0].url
+                        : record.images[0]
+                      : '/images/placeholder.jpg'); // Ensure placeholder exists
+
+                  return (
+                    <Grid item xs={12} sm={6} md={3} key={index}>
+                      <Card>
+                        <Box
                           sx={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
+                            position: 'relative',
                             width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
+                            paddingTop: '100%', // 1:1 Aspect Ratio
                           }}
-                        />
-                      </Box>
-                      <CardContent sx={{ textAlign: 'center' }}>
-                        <Typography variant="h6">{record.title}</Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {Array.isArray(record.artist) ? record.artist.join(', ') : record.artist}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
+                        >
+                          {displayImage && (
+                            <CardMedia
+                              component="img"
+                              image={displayImage}
+                              alt={`${record.title} cover`}
+                              sx={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
+                            />
+                          )}
+                        </Box>
+                        <CardContent sx={{ textAlign: 'center' }}>
+                          <Typography variant="h6">{record.title}</Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            {Array.isArray(record.artist) ? record.artist.join(', ') : record.artist}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  );
+                })}
               </Grid>
             ) : (
               <Typography>No saved items.</Typography>
@@ -558,53 +603,67 @@ const ProfilePage = () => {
             </Typography>
             {listedRecords.length > 0 ? (
               <Grid container spacing={2}>
-                {listedRecords.map((record, index) => (
-                  <Grid item xs={12} sm={6} md={3} key={index}>
-                    <Card
-                      sx={{ position: 'relative' }}
-                      onClick={() => navigate(`/listing/${record._id}`)}
-                    >
-                      <Box
-                        sx={{
-                          position: 'relative',
-                          width: '100%',
-                          paddingTop: '100%', // 1:1 Aspect Ratio
-                        }}
+                {listedRecords.map((record, index) => {
+                  // Enhanced Fallback Logic for listed records images
+                  const displayImage =
+                    record.coverUrl ||
+                    (record.images && record.images.length > 0
+                      ? typeof record.images[0] === 'object'
+                        ? record.images[0].url
+                        : record.images[0]
+                      : '/images/placeholder.jpg'); // Ensure placeholder exists
+
+                  return (
+                    <Grid item xs={12} sm={6} md={3} key={index}>
+                      <Card
+                        sx={{ position: 'relative' }}
+                        onClick={() => navigate(`/listing/${record._id}`)}
                       >
-                        <DisplayImage
-                          record={record}
-                          alt={`${record.title} cover`}
+                        <Box
                           sx={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
+                            position: 'relative',
                             width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                          }}
-                        />
-                      </Box>
-                      <CardContent sx={{ textAlign: 'center' }}>
-                        <Typography variant="h6">{record.title}</Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {Array.isArray(record.artist) ? record.artist.join(', ') : record.artist}
-                        </Typography>
-                      </CardContent>
-                      <CardActions sx={{ justifyContent: 'center' }}>
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleDeleteClick(event, record._id);
+                            paddingTop: '100%', // 1:1 Aspect Ratio
                           }}
                         >
-                          Delete Listing
-                        </Button>
-                      </CardActions>
-                    </Card>
-                  </Grid>
-                ))}
+                          {displayImage && (
+                            <CardMedia
+                              component="img"
+                              image={displayImage}
+                              alt={`${record.title} cover`}
+                              sx={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
+                            />
+                          )}
+                        </Box>
+                        <CardContent sx={{ textAlign: 'center' }}>
+                          <Typography variant="h6">{record.title}</Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            {Array.isArray(record.artist) ? record.artist.join(', ') : record.artist}
+                          </Typography>
+                        </CardContent>
+                        <CardActions sx={{ justifyContent: 'center' }}>
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleDeleteClick(event, record._id);
+                            }}
+                          >
+                            Delete Listing
+                          </Button>
+                        </CardActions>
+                      </Card>
+                    </Grid>
+                  );
+                })}
               </Grid>
             ) : (
               <Typography>No records listed for trade.</Typography>
@@ -620,46 +679,60 @@ const ProfilePage = () => {
             </Typography>
             {recommendedRecords.length > 0 ? (
               <Grid container spacing={2}>
-                {recommendedRecords.map((record, index) => (
-                  <Grid item xs={12} sm={6} md={3} key={index}>
-                    <Card
-                      onClick={() => navigate(`/listing/${record._id}`)}
-                      sx={{
-                        cursor: 'pointer',
-                        '&:hover': {
-                          boxShadow: 6,
-                        },
-                      }}
-                    >
-                      <Box
+                {recommendedRecords.map((record, index) => {
+                  // Enhanced Fallback Logic for recommended records images
+                  const displayImage =
+                    record.coverUrl ||
+                    (record.images && record.images.length > 0
+                      ? typeof record.images[0] === 'object'
+                        ? record.images[0].url
+                        : record.images[0]
+                      : '/images/placeholder.jpg'); // Ensure placeholder exists
+
+                  return (
+                    <Grid item xs={12} sm={6} md={3} key={index}>
+                      <Card
+                        onClick={() => navigate(`/listing/${record._id}`)}
                         sx={{
-                          position: 'relative',
-                          width: '100%',
-                          paddingTop: '100%', // 1:1 Aspect Ratio
+                          cursor: 'pointer',
+                          '&:hover': {
+                            boxShadow: 6,
+                          },
                         }}
                       >
-                        <DisplayImage
-                          record={record}
-                          alt={`${record.title} cover`}
+                        <Box
                           sx={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
+                            position: 'relative',
                             width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
+                            paddingTop: '100%', // 1:1 Aspect Ratio
                           }}
-                        />
-                      </Box>
-                      <CardContent sx={{ textAlign: 'center' }}>
-                        <Typography variant="h6">{record.title}</Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {Array.isArray(record.artist) ? record.artist.join(', ') : record.artist}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
+                        >
+                          {displayImage && (
+                            <CardMedia
+                              component="img"
+                              image={displayImage}
+                              alt={`${record.title} cover`}
+                              sx={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
+                            />
+                          )}
+                        </Box>
+                        <CardContent sx={{ textAlign: 'center' }}>
+                          <Typography variant="h6">{record.title}</Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            {Array.isArray(record.artist) ? record.artist.join(', ') : record.artist}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  );
+                })}
               </Grid>
             ) : (
               <Typography>No recommendations available.</Typography>
