@@ -554,7 +554,7 @@ const ProfilePage = () => {
 
                   return (
                     <Grid item xs={12} sm={6} md={3} key={index}>
-                      <Card>
+                      <Card onClick={() => navigate(`/listing/${record._id}`)}>
                         <Box
                           sx={{
                             position: 'relative',
